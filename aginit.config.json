@@ -1,16 +1,22 @@
 {
-  "version": "1.0.0",
-  "name": "ai-project-bootstrap",
+  "schemaVersion": "1.0.0",
+  "name": "aginit",
   "preset": "cli",
   "agents": {
     "primary": "antigravity",
     "secondary": "codex"
   },
   "skills": {
-    "sources": []
+    "workflow": "minimal",
+    "sources": [
+      {
+        "package": "mattpocock/skills",
+        "skills": ["tdd", "code-review", "diagnosing-bugs"]
+      }
+    ]
   },
   "codebase": {
-    "graft": false
+    "graft": true
   },
   "browser": {
     "visualAgent": false,

@@ -11,7 +11,7 @@ export function createCliProgram(): Command {
   const program = new Command();
 
   program
-    .name('ai')
+    .name('aginit')
     .description('Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex')
     .version('0.1.0');
 
@@ -76,7 +76,7 @@ export function createCliProgram(): Command {
     .description('Update installed skills and refresh codebase graph')
     .option('--dry-run', 'Simulate update')
     .action(async (options: any) => {
-      logger.banner('AI Project Bootstrap — Update');
+      logger.banner('Aginit — Update');
       const targetDir = process.cwd();
       await updateSkills(targetDir, { dryRun: options.dryRun });
       await buildGraft(targetDir, { dryRun: options.dryRun });

@@ -1,4 +1,4 @@
-import { AIProjectConfig, PresetType, WebFramework } from './schema.js';
+import { AginitConfig, PresetType, WebFramework } from './schema.js';
 
 export interface DefaultConfigOptions {
   framework?: WebFramework;
@@ -9,19 +9,22 @@ export function getDefaultConfig(
   name: string,
   preset: PresetType,
   options: DefaultConfigOptions = {}
-): AIProjectConfig {
+): AginitConfig {
   const specWorkflow = !!options.specWorkflow;
   const mattSkills = specWorkflow
     ? ['tdd', 'code-review', 'diagnosing-bugs', 'to-spec', 'to-tickets', 'implement-spec']
     : ['tdd', 'code-review', 'diagnosing-bugs'];
 
   switch (preset) {
-    case 'web':
+    case 'web': {
+      const framework = options.framework || 'none';
+      const hasWebTarget = framework === 'vite' || framework === 'next';
+
       return {
-        version: '1.0.0',
+        schemaVersion: '1.0.0',
         name,
         preset: 'web',
-        framework: options.framework || 'none',
+        framework,
         agents: {
           primary: 'antigravity',
           secondary: 'codex'
@@ -48,7 +51,7 @@ export function getDefaultConfig(
         },
         browser: {
           visualAgent: true,
-          playwright: true
+          playwright: hasWebTarget
         },
         docs: {
           adr: true
@@ -57,10 +60,11 @@ export function getDefaultConfig(
           ci: true
         }
       };
+    }
 
     case 'cli':
       return {
-        version: '1.0.0',
+        schemaVersion: '1.0.0',
         name,
         preset: 'cli',
         agents: {
@@ -94,7 +98,7 @@ export function getDefaultConfig(
     case 'generic':
     default:
       return {
-        version: '1.0.0',
+        schemaVersion: '1.0.0',
         name,
         preset: 'generic',
         agents: {

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileExists, readJsonFile, safeWriteFile, writeJsonFile } from '../utils/fs.js';
+import { runCommand } from '../utils/shell.js';
 import { PresetContext, PresetHandler } from './types.js';
 import { setupBrowserTesting } from '../adapters/browser.js';
 import { setupAdr } from './adr.js';
@@ -12,19 +13,45 @@ export const webPreset: PresetHandler = {
     const framework = config.framework || 'none';
     const pkgPath = path.join(targetDir, 'package.json');
 
-    // 1. package.json
+    // If framework is 'vite' or 'next' and package.json does not exist yet,
+    // delegate to official scaffolders
+    if (!fileExists(pkgPath) && !dryRun) {
+      if (framework === 'vite') {
+        await runCommand('pnpm create vite . --template react-ts', {
+          cwd: targetDir,
+          silent: true
+        });
+      } else if (framework === 'next') {
+        await runCommand(
+          'pnpm create next-app . --typescript --eslint --app --no-src-dir --no-tailwind --import-alias "@/*" --use-pnpm',
+          {
+            cwd: targetDir,
+            silent: true
+          }
+        );
+      }
+    }
+
+    // 1. package.json management (idempotent & conservative)
     let pkg: Record<string, any>;
 
-    if (framework === 'existing' && fileExists(pkgPath)) {
+    if (fileExists(pkgPath)) {
       pkg = readJsonFile<Record<string, any>>(pkgPath) || { name: projectName };
       pkg.scripts = pkg.scripts || {};
       if (!pkg.scripts.test) pkg.scripts.test = 'vitest run';
-      if (!pkg.scripts['test:e2e']) pkg.scripts['test:e2e'] = 'playwright test';
-      if (!pkg.scripts.typecheck) pkg.scripts.typecheck = 'tsc --noEmit';
+      if (!pkg.scripts['test:watch']) pkg.scripts['test:watch'] = 'vitest';
+      if (config.browser.playwright && !pkg.scripts['test:e2e']) {
+        pkg.scripts['test:e2e'] = 'playwright test';
+      }
+      if (!pkg.scripts.typecheck && fileExists(path.join(targetDir, 'tsconfig.json'))) {
+        pkg.scripts.typecheck = 'tsc --noEmit';
+      }
 
       pkg.devDependencies = pkg.devDependencies || {};
-      pkg.devDependencies['@playwright/test'] = pkg.devDependencies['@playwright/test'] || '^1.49.0';
       pkg.devDependencies['vitest'] = pkg.devDependencies['vitest'] || '^2.1.3';
+      if (config.browser.playwright) {
+        pkg.devDependencies['@playwright/test'] = pkg.devDependencies['@playwright/test'] || '^1.49.0';
+      }
     } else {
       pkg = {
         name: projectName,
@@ -33,17 +60,20 @@ export const webPreset: PresetHandler = {
         scripts: {
           test: 'vitest run',
           'test:watch': 'vitest',
-          'test:e2e': 'playwright test',
           typecheck: 'tsc --noEmit'
         },
         dependencies: {},
         devDependencies: {
-          '@playwright/test': '^1.49.0',
           '@types/node': '^22.8.0',
           typescript: '^5.6.3',
           vitest: '^2.1.3'
         }
       };
+
+      if (config.browser.playwright) {
+        pkg.scripts['test:e2e'] = 'playwright test';
+        pkg.devDependencies['@playwright/test'] = '^1.49.0';
+      }
 
       if (framework === 'vite') {
         pkg.scripts.dev = 'vite';
@@ -59,7 +89,7 @@ export const webPreset: PresetHandler = {
         pkg.devDependencies['@types/react'] = '^19.0.0';
         pkg.devDependencies['@types/react-dom'] = '^19.0.0';
       } else {
-        // 'none' or fallback
+        // 'none' or agnostic baseline
         pkg.scripts.build = 'tsc';
       }
     }
@@ -73,7 +103,7 @@ export const webPreset: PresetHandler = {
       safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
     }
 
-    // 2. tsconfig.json
+    // 2. tsconfig.json (only if not already created by official scaffolder)
     if (!fileExists(path.join(targetDir, 'tsconfig.json'))) {
       const tsconfig = {
         compilerOptions: {
@@ -87,7 +117,9 @@ export const webPreset: PresetHandler = {
           forceConsistentCasingInFileNames: true,
           noEmit: true
         },
-        include: ['src/**/*', 'tests/**/*', 'e2e/**/*']
+        include: config.browser.playwright
+          ? ['src/**/*', 'tests/**/*', 'e2e/**/*']
+          : ['src/**/*', 'tests/**/*']
       };
       writeJsonFile(path.join(targetDir, 'tsconfig.json'), tsconfig, { dryRun, silent });
     }
@@ -105,9 +137,9 @@ export default defineConfig({
       safeWriteFile(path.join(targetDir, 'vitest.config.ts'), vitestConfig, { dryRun, silent });
     }
 
-    // 4. Source & unit test files
+    // 4. Source & unit test files (only create sample index.ts if no src directory files exist)
     const srcIndexPath = path.join(targetDir, 'src', 'index.ts');
-    if (!fileExists(srcIndexPath)) {
+    if (!fileExists(srcIndexPath) && !fileExists(path.join(targetDir, 'src', 'main.tsx')) && !fileExists(path.join(targetDir, 'src', 'App.tsx'))) {
       const srcIndex = `export function createApp() {
   return {
     name: '${projectName}',
@@ -134,13 +166,13 @@ describe('createApp', () => {
       safeWriteFile(testIndexPath, unitTest, { dryRun, silent });
     }
 
-    // 5. Browser E2E & Visual QA setup
-    if (ctx.config.browser.playwright) {
+    // 5. Browser E2E & Visual QA setup (only when playwright is enabled, e.g. when web target exists)
+    if (config.browser.playwright) {
       setupBrowserTesting(targetDir, { dryRun, silent });
     }
 
     // 6. Docs ADR
-    if (ctx.config.docs.adr) {
+    if (config.docs.adr) {
       setupAdr(targetDir, { dryRun, silent });
     }
   }

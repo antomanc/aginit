@@ -3,5 +3,6 @@ dist/
 /graft/
 .DS_Store
 *.log
+*.tgz
 coverage/
 pnpm-debug.log*

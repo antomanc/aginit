@@ -1,25 +1,50 @@
 {
-  "name": "ai-project-bootstrap",
+  "name": "@antomanc/aginit",
   "version": "0.1.0",
   "description": "Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "bin": {
-    "ai": "./bin/ai.js",
-    "ai-new": "./bin/ai-new.js",
-    "ai-init": "./bin/ai-init.js",
-    "ai-doctor": "./bin/ai-doctor.js"
+    "aginit": "./bin/aginit.js",
+    "ai": "./bin/ai.js"
   },
   "files": [
     "dist",
     "bin",
-    "templates"
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antomanc/aginit.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "antigravity",
+    "codex",
+    "t3-code",
+    "skills",
+    "graft",
+    "bootstrap",
+    "scaffolder"
   ],
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsc"
   },
   "dependencies": {
     "commander": "^12.1.0",

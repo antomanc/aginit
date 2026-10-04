@@ -30,7 +30,9 @@ describe('CLI Project Creation', () => {
       });
 
       expect(ok).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'ai.config.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, 'aginit.config.json'))).toBe(true);
+      const config = JSON.parse(fs.readFileSync(path.join(tempDir, 'aginit.config.json'), 'utf-8'));
+      expect(config.schemaVersion).toBe('1.0.0');
       expect(fs.existsSync(path.join(tempDir, 'AGENTS.md'))).toBe(true);
       expect(fs.existsSync(path.join(tempDir, '.gitignore'))).toBe(true);
       expect(fs.existsSync(path.join(tempDir, 'docs', 'adr', '0001-record-architecture-decisions.md'))).toBe(true);
@@ -39,7 +41,7 @@ describe('CLI Project Creation', () => {
     }
   });
 
-  it('scaffolds web preset decoupled from Vite by default (framework=none)', async () => {
+  it('scaffolds web preset decoupled from Vite by default (framework=none) without unusable E2E', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-web-none-'));
     try {
       const ok = await createProject('test-web-none', {
@@ -51,12 +53,16 @@ describe('CLI Project Creation', () => {
       });
 
       expect(ok).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, 'aginit.config.json'))).toBe(true);
       const pkg = JSON.parse(fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'));
       // By default, framework is 'none' so vite is NOT added
       expect(pkg.devDependencies.vite).toBeUndefined();
       expect(pkg.scripts.build).toBe('tsc');
       expect(pkg.scripts.test).toBe('vitest run');
-      expect(pkg.scripts['test:e2e']).toBe('playwright test');
+      // When framework is none, no unusable Playwright E2E is scaffolded
+      expect(pkg.scripts['test:e2e']).toBeUndefined();
+      expect(fs.existsSync(path.join(tempDir, 'playwright.config.ts'))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, 'e2e'))).toBe(false);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -79,6 +85,8 @@ describe('CLI Project Creation', () => {
       expect(pkg.devDependencies.vite).toBeDefined();
       expect(pkg.scripts.dev).toBe('vite');
       expect(pkg.scripts.build).toBe('tsc && vite build');
+      expect(pkg.scripts['test:e2e']).toBe('playwright test');
+      expect(fs.existsSync(path.join(tempDir, 'playwright.config.ts'))).toBe(true);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

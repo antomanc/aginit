@@ -6,8 +6,8 @@ import path from 'node:path';
 import os from 'node:os';
 
 describe('AGENTS.md generation & safety', () => {
-  it('generates concise AGENTS.md with web capabilities', () => {
-    const config = getDefaultConfig('demo-web', 'web');
+  it('generates concise AGENTS.md with web capabilities for vite framework', () => {
+    const config = getDefaultConfig('demo-web', 'web', { framework: 'vite' });
     const md = generateAgentsMarkdown(config);
 
     expect(md).toContain('# demo-web');

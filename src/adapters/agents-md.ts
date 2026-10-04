@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { fileExists, readTextFile, safeWriteFile } from '../utils/fs.js';
-import { AIProjectConfig } from '../config/schema.js';
+import { AginitConfig } from '../config/schema.js';
 import { logger } from '../utils/logger.js';
 
-export function generateAgentsMarkdown(config: AIProjectConfig): string {
+export function generateAgentsMarkdown(config: AginitConfig): string {
   const isWeb = config.preset === 'web';
   const hasBrowser = isWeb && config.browser.playwright;
   const hasVisualAgent = isWeb && config.browser.visualAgent;
@@ -41,7 +41,7 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
   const sections = [
     `# ${config.name}`,
     '',
-    `AI-first ${config.preset} project bootstrapped with \`ai-project-bootstrap\`.`,
+    `AI-first ${config.preset} project configured with \`aginit\`.`,
     '',
     '## Core Invariants',
     '- Keep changes small, focused, and test-verified.',
@@ -77,7 +77,7 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
 
 export function setupAgentsMarkdown(
   targetDir: string,
-  config: AIProjectConfig,
+  config: AginitConfig,
   options: { overwrite?: boolean; dryRun?: boolean; silent?: boolean } = {}
 ): boolean {
   const { overwrite = false, dryRun = false, silent = false } = options;

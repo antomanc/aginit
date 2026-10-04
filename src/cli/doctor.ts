@@ -2,7 +2,11 @@ import path from 'node:path';
 import pc from 'picocolors';
 import { runCommand, commandExists } from '../utils/shell.js';
 import { fileExists, readJsonFile, readTextFile } from '../utils/fs.js';
-import { AI_CONFIG_FILENAME, AIProjectConfig } from '../config/schema.js';
+import {
+  AGINIT_CONFIG_FILENAME,
+  LEGACY_CONFIG_FILENAME,
+  AginitConfig
+} from '../config/schema.js';
 import { getInstalledSkills } from '../adapters/skills.js';
 import { logger } from '../utils/logger.js';
 
@@ -16,7 +20,7 @@ interface CheckItem {
 }
 
 export async function runDoctor(targetDir: string = process.cwd()): Promise<void> {
-  logger.banner('AI Project Bootstrap — System & Project Doctor', `Target: ${targetDir}`);
+  logger.banner('Aginit — System & Project Doctor', `Target: ${targetDir}`);
 
   const checks: CheckItem[] = [];
 
@@ -54,7 +58,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
       : 'Git is not installed',
     suggestion: !gitExists
       ? 'Install git via brew or Xcode Command Line Tools'
-      : (!isGitRepo ? 'Run `git init` or `ai-init` to initialize repository' : undefined)
+      : (!isGitRepo ? 'Run `git init` or `aginit init` to initialize repository' : undefined)
   });
 
   // 4. Graft CLI check
@@ -94,19 +98,26 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     suggestion: skillsRes.ok ? undefined : 'Check network connectivity or npm/npx configuration'
   });
 
-  // 7. Project-level checks (if target dir has ai.config.json or AGENTS.md)
-  const configPath = path.join(targetDir, AI_CONFIG_FILENAME);
+  // 7. Project-level checks (if target dir has aginit.config.json / ai.config.json or AGENTS.md)
+  let configPath = path.join(targetDir, AGINIT_CONFIG_FILENAME);
+  if (!fileExists(configPath)) {
+    const legacyPath = path.join(targetDir, LEGACY_CONFIG_FILENAME);
+    if (fileExists(legacyPath)) {
+      configPath = legacyPath;
+    }
+  }
+
   const configExists = fileExists(configPath);
-  const projectConfig = configExists ? readJsonFile<AIProjectConfig>(configPath) : null;
+  const projectConfig = configExists ? readJsonFile<AginitConfig>(configPath) : null;
 
   checks.push({
-    name: 'Project configuration (ai.config.json)',
+    name: `Project configuration (${path.basename(configPath)})`,
     category: 'Project Config',
     ok: !!projectConfig,
     detail: projectConfig
-      ? `Preset: "${projectConfig.preset}", agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
-      : 'No ai.config.json found in current directory',
-    suggestion: projectConfig ? undefined : 'Run `ai-init` to generate declarative configuration'
+      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
+      : 'No aginit.config.json found in current directory',
+    suggestion: projectConfig ? undefined : 'Run `aginit init` to generate declarative configuration'
   });
 
   // 8. AGENTS.md check
@@ -123,8 +134,8 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
       ? (hasIntakeSection ? 'AGENTS.md present with intake/bootstrap guidance' : 'AGENTS.md present but missing intake guidance')
       : 'AGENTS.md not found in directory',
     suggestion: !agentsExists
-      ? 'Run `ai-init` to generate standard AGENTS.md'
-      : (!hasIntakeSection ? 'Run `ai-init` to add intake section to AGENTS.md' : undefined)
+      ? 'Run `aginit init` to generate standard AGENTS.md'
+      : (!hasIntakeSection ? 'Run `aginit init` to add intake section to AGENTS.md' : undefined)
   });
 
   // 9. Installed skills check
@@ -136,7 +147,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     detail: installedSkills.length > 0
       ? `${installedSkills.length} skills installed: ${installedSkills.join(', ')}`
       : 'No skills found in .agents/skills/',
-    suggestion: installedSkills.length === 0 ? 'Run `ai-init` or `npx skills add ...` to install skills' : undefined
+    suggestion: installedSkills.length === 0 ? 'Run `aginit init` or `npx skills add ...` to install skills' : undefined
   });
 
   // Print grouped results

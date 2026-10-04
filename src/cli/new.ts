@@ -1,7 +1,7 @@
 import path from 'node:path';
 import pc from 'picocolors';
 import { getDefaultConfig } from '../config/defaults.js';
-import { AI_CONFIG_FILENAME, PresetType, WebFramework } from '../config/schema.js';
+import { AGINIT_CONFIG_FILENAME, PresetType, WebFramework } from '../config/schema.js';
 import { getPreset } from '../presets/registry.js';
 import { setupGit } from '../adapters/git.js';
 import { setupAgentsMarkdown } from '../adapters/agents-md.js';
@@ -44,7 +44,7 @@ export async function createProject(
       .filter(Boolean)
       .join(' | ');
 
-    logger.banner(`AI Project Bootstrap — ${projectName}`, subtitle);
+    logger.banner(`Aginit — ${projectName}`, subtitle);
   }
 
   // 1. Resolve preset & configuration
@@ -81,12 +81,12 @@ export async function createProject(
 
   // Step 3: Write declarative project config
   if (!silent) logger.step(currentStep++, totalSteps, 'Writing declarative project configuration');
-  writeJsonFile(path.join(targetDir, AI_CONFIG_FILENAME), config, {
+  writeJsonFile(path.join(targetDir, AGINIT_CONFIG_FILENAME), config, {
     overwrite: true,
     dryRun,
     silent: true
   });
-  if (!silent) logger.success(`Saved configuration to ${AI_CONFIG_FILENAME}`);
+  if (!silent) logger.success(`Saved configuration to ${AGINIT_CONFIG_FILENAME}`);
 
   // Step 4: Generate AGENTS.md
   if (!silent) logger.step(currentStep++, totalSteps, 'Configuring AGENTS.md');

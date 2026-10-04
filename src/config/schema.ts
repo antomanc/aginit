@@ -6,8 +6,8 @@ export interface SkillSourceConfig {
   skills: string[];
 }
 
-export interface AIProjectConfig {
-  version: string;
+export interface AginitConfig {
+  schemaVersion: string;
   name: string;
   preset: PresetType;
   framework?: WebFramework;
@@ -34,4 +34,9 @@ export interface AIProjectConfig {
   };
 }
 
-export const AI_CONFIG_FILENAME = 'ai.config.json';
+// Backward-compatible alias
+export type AIProjectConfig = AginitConfig;
+
+export const AGINIT_CONFIG_FILENAME = 'aginit.config.json';
+export const LEGACY_CONFIG_FILENAME = 'ai.config.json';
+export const AI_CONFIG_FILENAME = AGINIT_CONFIG_FILENAME;
