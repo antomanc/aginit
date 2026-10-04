@@ -43,17 +43,18 @@ Every project bootstrapped with Aginit receives:
 
 ## Quickstart
 
-Run directly with `pnpm dlx` / `npx`, or install globally:
+Run directly with `pnpm dlx` or `npx`, or install globally:
 
 ```bash
-# Global installation (recommended)
-pnpm add -g @antomanc/aginit
+# Run directly without installation
+npx @antomanc/aginit new my-web-app --preset web
 
-# Create a new web project
-aginit new my-web-app --preset web
-
-# Or run with npx / dlx without global install
+# Or with pnpm dlx
 pnpm dlx @antomanc/aginit new my-web-app --preset web
+
+# Or install globally
+npm install -g @antomanc/aginit
+aginit new my-web-app --preset web
 ```
 
 Then open the project in **T3 Code**, and tell Antigravity:
@@ -164,7 +165,7 @@ Aginit integrates and configures independent open-source software and skills:
 - **agent-browser**: Copyright © Vercel Labs
 - **Playwright**: Copyright © Microsoft Corporation
 
-Each upstream tool is governed by its own independent license. Aginit does not vendor, alter, or relicense upstream software.
+Each upstream tool is governed by its own independent license. Aginit does not vendor, alter, or relicense upstream software. For details, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
