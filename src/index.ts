@@ -10,3 +10,4 @@ export * from './adapters/browser.js';
 export * from './cli/new.js';
 export * from './cli/init.js';
 export * from './cli/doctor.js';
+export * from './cli/wizard.js';

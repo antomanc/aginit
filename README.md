@@ -43,18 +43,34 @@ Every project bootstrapped with Aginit receives:
 
 ## Quickstart
 
-Run directly with `pnpm dlx` or `npx`, or install globally:
+### Interactive Wizard (Recommended)
+
+Simply run `aginit` or `npx @antomanc/aginit` with no arguments in your terminal to launch the interactive prompt:
 
 ```bash
 # Run directly without installation
-npx @antomanc/aginit new my-web-app --preset web
+npx @antomanc/aginit
 
 # Or with pnpm dlx
-pnpm dlx @antomanc/aginit new my-web-app --preset web
+pnpm dlx @antomanc/aginit
 
 # Or install globally
 npm install -g @antomanc/aginit
-aginit new my-web-app --preset web
+aginit
+```
+
+The wizard prompts only for meaningful choices (create new vs initialize existing, project name, preset, framework, workflow) and applies best-practice defaults for everything else.
+
+### Non-Interactive / Scriptable CLI
+
+All commands accept explicit flags for automated environments and CI:
+
+```bash
+# Create a new web project directly
+aginit new my-web-app --preset web --framework vite
+
+# Or via npx
+npx @antomanc/aginit new my-web-app --preset web
 ```
 
 Then open the project in **T3 Code**, and tell Antigravity:

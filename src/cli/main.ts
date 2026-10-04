@@ -6,6 +6,12 @@ import { updateSkills } from '../adapters/skills.js';
 import { buildGraft } from '../adapters/graft.js';
 import { logger } from '../utils/logger.js';
 import { PresetType, WebFramework } from '../config/schema.js';
+import {
+  isInteractive,
+  promptNewProject,
+  promptInitProject,
+  runInteractiveWizard
+} from './wizard.js';
 
 export function createCliProgram(): Command {
   const program = new Command();
@@ -15,9 +21,18 @@ export function createCliProgram(): Command {
     .description('Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex')
     .version('0.1.0');
 
+  // Root action: interactive wizard when in TTY, else display help
+  program.action(async () => {
+    if (isInteractive()) {
+      await runInteractiveWizard();
+    } else {
+      program.outputHelp();
+    }
+  });
+
   // Command: new
   program
-    .command('new <projectName>')
+    .command('new [projectName]')
     .description('Create a brand new AI-first project')
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
@@ -26,11 +41,31 @@ export function createCliProgram(): Command {
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
     .option('--dry-run', 'Simulate creation without writing changes to disk')
-    .action(async (projectName: string, options: any) => {
-      await createProject(projectName, {
-        preset: options.preset as PresetType,
-        framework: options.framework as WebFramework,
-        specWorkflow: options.specWorkflow,
+    .action(async (projectName: string | undefined, options: any, command: Command) => {
+      let finalName = projectName;
+      let finalPreset = options.preset;
+      let finalFramework = options.framework;
+      let finalSpecWorkflow = options.specWorkflow;
+
+      if (!finalName) {
+        if (!isInteractive()) {
+          program.error("error: missing required argument 'projectName'");
+        }
+        const answers = await promptNewProject({
+          preset: command.getOptionValueSource('preset') === 'cli' ? (options.preset as PresetType) : undefined,
+          framework: command.getOptionValueSource('framework') === 'cli' ? (options.framework as WebFramework) : undefined,
+          specWorkflow: command.getOptionValueSource('specWorkflow') === 'cli' ? options.specWorkflow : undefined
+        });
+        finalName = answers.projectName;
+        finalPreset = answers.preset;
+        finalFramework = answers.framework;
+        finalSpecWorkflow = answers.specWorkflow;
+      }
+
+      await createProject(finalName, {
+        preset: finalPreset as PresetType,
+        framework: finalFramework as WebFramework,
+        specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,
@@ -49,11 +84,30 @@ export function createCliProgram(): Command {
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
     .option('--dry-run', 'Simulate setup without writing changes to disk')
-    .action(async (options: any) => {
+    .action(async (options: any, command: Command) => {
+      let finalPreset = options.preset;
+      let finalFramework = options.framework;
+      let finalSpecWorkflow = options.specWorkflow;
+
+      const isPresetExplicit = command.getOptionValueSource('preset') === 'cli';
+      const isFrameworkExplicit = command.getOptionValueSource('framework') === 'cli';
+      const isSpecExplicit = command.getOptionValueSource('specWorkflow') === 'cli';
+
+      if (isInteractive() && !isPresetExplicit && !options.dryRun) {
+        const answers = await promptInitProject({
+          preset: isPresetExplicit ? (options.preset as PresetType) : undefined,
+          framework: isFrameworkExplicit ? (options.framework as WebFramework) : undefined,
+          specWorkflow: isSpecExplicit ? options.specWorkflow : undefined
+        });
+        finalPreset = answers.preset;
+        finalFramework = answers.framework;
+        finalSpecWorkflow = answers.specWorkflow;
+      }
+
       await initCurrentDirectory({
-        preset: options.preset as PresetType,
-        framework: options.framework as WebFramework,
-        specWorkflow: options.specWorkflow,
+        preset: finalPreset as PresetType,
+        framework: finalFramework as WebFramework,
+        specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,
