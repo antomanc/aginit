@@ -25,9 +25,9 @@ export default defineConfig({
 
 const SMOKE_TEST = `import { test, expect } from '@playwright/test';
 
-test('smoke verification placeholder', async ({ page }) => {
+test.skip('TODO: verify the application in a browser', async ({ page }) => {
   // Replace with local dev server or preview URL during development
-  expect(true).toBe(true);
+  // Example: await page.goto('/'); await expect(page).toHaveTitle(/Your app/);
 });
 `;
 

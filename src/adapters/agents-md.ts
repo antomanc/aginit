@@ -1,10 +1,20 @@
 import path from 'node:path';
 import { fileExists, readTextFile, safeWriteFile } from '../utils/fs.js';
 import { AginitConfig } from '../config/schema.js';
+import { readPackageManifest } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
 import { getPackageManagerAdapter } from './package-manager.js';
 
-export function generateAgentsMarkdown(config: AginitConfig): string {
+export function generateAgentsMarkdown(
+  config: AginitConfig,
+  scripts?: Record<string, string>
+): string {
+  const commands =
+    scripts ??
+    (config.preset === 'generic'
+      ? { test: 'vitest run' }
+      : { build: '', typecheck: '', test: '', dev: '', 'test:e2e': '' });
+  const hasCommand = (name: string) => Object.hasOwn(commands, name);
   const isWeb = config.preset === 'web';
   const hasBrowser = isWeb && config.browser.playwright;
   const hasVisualAgent = isWeb && config.browser.visualAgent;
@@ -12,32 +22,39 @@ export function generateAgentsMarkdown(config: AginitConfig): string {
   const pmAdapter = getPackageManagerAdapter(pm);
 
   let devCommand = '';
-  if (isWeb && config.framework && config.framework !== 'none') {
+  if (hasCommand('dev') && isWeb && config.framework && config.framework !== 'none') {
     devCommand = `- Dev Server: \`${pmAdapter.runCmd('dev')}\``;
   }
 
   let testE2E = '';
-  if (hasBrowser) {
+  if (hasBrowser && hasCommand('test:e2e')) {
     testE2E = `- Test (E2E / Browser): \`${pmAdapter.runCmd('test:e2e')}\``;
   }
 
+  const selectedSkills = config.skills.sources.flatMap((source) => source.skills);
+  const engineering = selectedSkills.filter((skill) =>
+    ['tdd', 'code-review', 'diagnosing-bugs'].includes(skill)
+  );
   let uiCapability = '';
-  if (isWeb) {
-    uiCapability = '- **UI & Design**: Use `impeccable` skill for frontend polish, design critique, and token craft.';
+  if (isWeb && selectedSkills.includes('impeccable')) {
+    uiCapability =
+      '- **UI & Design**: Use `impeccable` skill for frontend polish, design critique, and token craft.';
   }
 
   let browserCapability = '';
-  if (hasVisualAgent) {
-    browserCapability = '- **Browser Verification**: Use `agent-browser` skill for interactive inspection and visual QA.';
+  if (hasVisualAgent && selectedSkills.includes('agent-browser')) {
+    browserCapability =
+      '- **Browser Verification**: Use `agent-browser` skill for interactive inspection and visual QA.';
   }
 
   let graftCapability = '';
   if (config.codebase.graft) {
-    graftCapability = '- **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.';
+    graftCapability =
+      '- **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.';
   }
 
   let specWorkflow = '';
-  if (config.skills.workflow === 'spec') {
+  if (config.skills.workflow === 'spec' && selectedSkills.includes('to-spec')) {
     specWorkflow = '- **Spec & Tickets Workflow**: `to-spec`, `to-tickets`, `implement-spec`';
   }
 
@@ -54,14 +71,19 @@ export function generateAgentsMarkdown(config: AginitConfig): string {
     '## Essential Commands',
     `- Package Manager: \`${pm}\``,
     devCommand,
-    `- Build: \`${pmAdapter.runCmd('build')}\``,
-    `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\``,
-    `- Test: \`${pmAdapter.runCmd('test')}\``,
+    hasCommand('build') ? `- Build: \`${pmAdapter.runCmd('build')}\`` : '',
+    hasCommand('typecheck') ? `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\`` : '',
+    hasCommand('test') ? `- Test: \`${pmAdapter.runCmd('test')}\`` : '',
+    hasCommand('test:unit') ? `- Unit Test: \`${pmAdapter.runCmd('test:unit')}\`` : '',
     testE2E,
     '',
     '## AI Capabilities & Skills',
-    'Installed skills live in `.agents/skills/` (shared by Antigravity and Codex):',
-    '- **Engineering**: `tdd`, `code-review`, `diagnosing-bugs`',
+    selectedSkills.length
+      ? 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex):'
+      : 'Skills installation is disabled in this configuration.',
+    engineering.length
+      ? `- **Engineering**: ${engineering.map((skill) => '\`' + skill + '\`').join(', ')}`
+      : '',
     specWorkflow,
     uiCapability,
     browserCapability,
@@ -75,7 +97,12 @@ export function generateAgentsMarkdown(config: AginitConfig): string {
     ''
   ];
 
-  return sections.filter((s) => s !== '').join('\n').trim() + '\n';
+  return (
+    sections
+      .filter((s) => s !== '')
+      .join('\n')
+      .trim() + '\n'
+  );
 }
 
 export function setupAgentsMarkdown(
@@ -111,6 +138,6 @@ export function setupAgentsMarkdown(
     return true;
   }
 
-  const content = generateAgentsMarkdown(config);
+  const content = generateAgentsMarkdown(config, readPackageManifest(targetDir)?.scripts);
   return safeWriteFile(filePath, content, { overwrite: true, dryRun, silent });
 }

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import pc from 'picocolors';
-import { runCommand, commandExists } from '../utils/shell.js';
-import { fileExists, readJsonFile, readTextFile } from '../utils/fs.js';
+import { runExecutable, commandExists } from '../utils/shell.js';
+import { fileExists, readTextFile } from '../utils/fs.js';
 import {
   AGINIT_CONFIG_FILENAME,
   LEGACY_CONFIG_FILENAME,
@@ -10,6 +10,7 @@ import {
 } from '../config/schema.js';
 import { detectPackageManager } from '../adapters/package-manager.js';
 import { getInstalledSkills } from '../adapters/skills.js';
+import { readProjectConfig } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
 
 interface CheckItem {
@@ -34,14 +35,20 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
   }
 
   const configExists = fileExists(configPath);
-  const projectConfig = configExists ? readJsonFile<AginitConfig>(configPath) : null;
+  let projectConfig: AginitConfig | null = null;
+  let configError = '';
+  try {
+    projectConfig = readProjectConfig(targetDir);
+  } catch (error) {
+    configError = error instanceof Error ? error.message : String(error);
+  }
   const activePm: PackageManager =
     projectConfig?.packageManager || detectPackageManager(targetDir) || 'pnpm';
 
   const checks: CheckItem[] = [];
 
   // 1. Node.js check
-  const nodeRes = await runCommand('node -v', { silent: true });
+  const nodeRes = await runExecutable('node', ['-v'], { silent: true });
   checks.push({
     name: 'Node.js runtime',
     category: 'Environment',
@@ -52,15 +59,13 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
   });
 
   // 2. Active Package Manager check (pnpm, npm, yarn, or bun)
-  const pmRes = await runCommand(`${activePm} -v`, { silent: true });
+  const pmRes = await runExecutable(activePm, ['-v'], { silent: true });
   checks.push({
     name: `${activePm} package manager`,
     category: 'Environment',
     ok: pmRes.ok,
     version: pmRes.stdout,
-    detail: pmRes.ok
-      ? `Installed (${pmRes.stdout})`
-      : `${activePm} is not found in PATH`,
+    detail: pmRes.ok ? `Installed (${pmRes.stdout})` : `${activePm} is not found in PATH`,
     suggestion: pmRes.ok
       ? undefined
       : `Install ${activePm} (${activePm === 'pnpm' ? 'npm install -g pnpm' : activePm === 'bun' ? 'curl -fsSL https://bun.sh/install | bash' : 'install ' + activePm})`
@@ -74,18 +79,22 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     category: 'Environment',
     ok: gitExists && isGitRepo,
     detail: gitExists
-      ? (isGitRepo ? 'Git installed and repository initialized' : 'Git installed, but target directory is not a git repo')
+      ? isGitRepo
+        ? 'Git installed and repository initialized'
+        : 'Git installed, but target directory is not a git repo'
       : 'Git is not installed',
     suggestion: !gitExists
       ? 'Install git via brew or Xcode Command Line Tools'
-      : (!isGitRepo ? 'Run `git init` or `aginit init` to initialize repository' : undefined)
+      : !isGitRepo
+        ? 'Run `git init` or `aginit init` to initialize repository'
+        : undefined
   });
 
   // 4. Graft CLI check
   const graftExists = await commandExists('graft');
   let graftVersion = '';
   if (graftExists) {
-    const gv = await runCommand('graft --version', { silent: true });
+    const gv = await runExecutable('graft', ['--version'], { silent: true });
     graftVersion = gv.stdout;
   }
   checks.push({
@@ -94,7 +103,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     ok: graftExists,
     version: graftVersion,
     detail: graftExists ? `Installed globally (${graftVersion})` : 'Graft CLI not found in PATH',
-    suggestion: graftExists ? undefined : 'Install Graft for codebase understanding: `npm i -g graft`'
+    suggestion: graftExists ? undefined : 'Install Graft: `npm install -g @nanonets/graft`'
   });
 
   // 5. Codex CLI check
@@ -108,7 +117,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
   });
 
   // 6. Skills CLI check (skills.sh engine)
-  const skillsRes = await runCommand('npx -y skills --version', { silent: true });
+  const skillsRes = await runExecutable('npx', ['-y', 'skills', '--version'], { silent: true });
   checks.push({
     name: 'Skills CLI (skills.sh engine)',
     category: 'AI Tooling',
@@ -125,14 +134,20 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     ok: !!projectConfig,
     detail: projectConfig
       ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), pm: ${activePm}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
-      : 'No aginit.config.json found in current directory',
-    suggestion: projectConfig ? undefined : 'Run `aginit init` to generate declarative configuration'
+      : configError
+        ? `Invalid configuration: ${configError}`
+        : 'No aginit.config.json found in current directory',
+    suggestion: projectConfig
+      ? undefined
+      : configError
+        ? 'Correct the configuration fields before running initialization'
+        : 'Run `aginit init` to generate declarative configuration'
   });
 
   // 8. AGENTS.md check
   const agentsPath = path.join(targetDir, 'AGENTS.md');
   const agentsExists = fileExists(agentsPath);
-  const agentsContent = agentsExists ? (readTextFile(agentsPath) || '') : '';
+  const agentsContent = agentsExists ? readTextFile(agentsPath) || '' : '';
   const hasIntakeSection = agentsContent.includes('Bootstrap & First Session');
 
   checks.push({
@@ -140,11 +155,15 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     category: 'Project Config',
     ok: agentsExists && hasIntakeSection,
     detail: agentsExists
-      ? (hasIntakeSection ? 'AGENTS.md present with intake/bootstrap guidance' : 'AGENTS.md present but missing intake guidance')
+      ? hasIntakeSection
+        ? 'AGENTS.md present with intake/bootstrap guidance'
+        : 'AGENTS.md present but missing intake guidance'
       : 'AGENTS.md not found in directory',
     suggestion: !agentsExists
       ? 'Run `aginit init` to generate standard AGENTS.md'
-      : (!hasIntakeSection ? 'Run `aginit init` to add intake section to AGENTS.md' : undefined)
+      : !hasIntakeSection
+        ? 'Run `aginit init` to add intake section to AGENTS.md'
+        : undefined
   });
 
   // 9. Installed skills check
@@ -153,10 +172,14 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     name: 'Local Agent Skills (.agents/skills/)',
     category: 'Project Config',
     ok: installedSkills.length > 0,
-    detail: installedSkills.length > 0
-      ? `${installedSkills.length} skills installed: ${installedSkills.join(', ')}`
-      : 'No skills found in .agents/skills/',
-    suggestion: installedSkills.length === 0 ? 'Run `aginit init` or `npx skills add ...` to install skills' : undefined
+    detail:
+      installedSkills.length > 0
+        ? `${installedSkills.length} skills installed: ${installedSkills.join(', ')}`
+        : 'No skills found in .agents/skills/',
+    suggestion:
+      installedSkills.length === 0
+        ? 'Run `aginit init` or `npx skills add ...` to install skills'
+        : undefined
   });
 
   // Print grouped results

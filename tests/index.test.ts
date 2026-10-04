@@ -9,5 +9,8 @@ describe('Aginit main exports', () => {
     expect(typeof aginit.getDefaultConfig).toBe('function');
     expect(typeof aginit.getPreset).toBe('function');
     expect(typeof aginit.listPresets).toBe('function');
+    expect(typeof aginit.validateConfig).toBe('function');
+    expect(typeof aginit.readProjectConfig).toBe('function');
+    expect(typeof aginit.validateProjectName).toBe('function');
   });
 });

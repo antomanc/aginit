@@ -31,7 +31,8 @@ export const PACKAGE_MANAGERS: Record<PackageManager, PackageManagerAdapter> = {
     execCmd: (pkg: string, args: string[] = []) =>
       `npx -y ${pkg}${args.length ? ' ' + args.join(' ') : ''}`,
     lockfile: 'package-lock.json',
-    scaffoldViteCmd: (template = 'react-ts') => `npm create vite@latest . -- --template ${template}`,
+    scaffoldViteCmd: (template = 'react-ts') =>
+      `npm create vite@latest . -- --template ${template}`,
     scaffoldNextCmd: () =>
       `npx -y create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm`
   },
@@ -77,4 +78,39 @@ export function detectPackageManager(dir: string): PackageManager | null {
     return 'npm';
   }
   return null;
+}
+
+/** Yarn Classic lacks dlx; npx fetches tools while --use-yarn selects the app manager.
+ * Commands used for execution; string helpers above are for displaying commands only. */
+export function scaffoldCommand(
+  pm: PackageManager,
+  framework: 'vite' | 'next'
+): { executable: string; args: string[] } {
+  const runners: Record<PackageManager, [string, ...string[]]> = {
+    pnpm: ['pnpm', 'dlx'],
+    npm: ['npx', '-y'],
+    yarn: ['npx', '-y'],
+    bun: ['bunx']
+  };
+  const [executable, ...prefix] = runners[pm];
+  const args =
+    framework === 'vite'
+      ? ['create-vite@latest', '.', '--template', 'react-ts', '--no-interactive', '--no-immediate']
+      : [
+          'create-next-app@latest',
+          '.',
+          '--typescript',
+          '--tailwind',
+          '--eslint',
+          '--app',
+          '--src-dir',
+          '--import-alias',
+          '@/*',
+          `--use-${pm}`,
+          '--yes',
+          '--skip-install',
+          '--disable-git',
+          '--no-agents-md'
+        ];
+  return { executable, args: [...prefix, ...args] };
 }

@@ -1,5 +1,6 @@
 export * from './config/schema.js';
 export * from './config/defaults.js';
+export * from './config/validation.js';
 export * from './presets/registry.js';
 export * from './presets/types.js';
 export * from './adapters/package-manager.js';

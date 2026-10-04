@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileExists, writeJsonFile } from '../utils/fs.js';
 import { PresetContext, PresetHandler } from './types.js';
+import { addTestingDependencies, setupTesting } from './testing.js';
 import { setupAdr } from './adr.js';
 
 export const genericPreset: PresetHandler = {
@@ -19,7 +20,9 @@ export const genericPreset: PresetHandler = {
           test: 'vitest run'
         }
       };
+      addTestingDependencies(pkg);
       writeJsonFile(pkgPath, pkg, { dryRun, silent });
+      setupTesting(ctx);
     }
 
     if (ctx.config.docs.adr) {
