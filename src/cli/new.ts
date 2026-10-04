@@ -1,7 +1,7 @@
 import path from 'node:path';
 import pc from 'picocolors';
 import { getDefaultConfig } from '../config/defaults.js';
-import { AI_CONFIG_FILENAME, PresetType } from '../config/schema.js';
+import { AI_CONFIG_FILENAME, PresetType, WebFramework } from '../config/schema.js';
 import { getPreset } from '../presets/registry.js';
 import { setupGit } from '../adapters/git.js';
 import { setupAgentsMarkdown } from '../adapters/agents-md.js';
@@ -12,6 +12,8 @@ import { logger } from '../utils/logger.js';
 
 export interface NewProjectOptions {
   preset?: PresetType;
+  framework?: WebFramework;
+  specWorkflow?: boolean;
   skills?: boolean;
   graft?: boolean;
   git?: boolean;
@@ -33,15 +35,24 @@ export async function createProject(
   const silent = !!options.silent;
 
   if (!silent) {
-    logger.banner(
-      `AI Project Bootstrap — ${projectName}`,
-      `Preset: ${presetName} | Target: ${targetDir}${dryRun ? ' (DRY RUN)' : ''}`
-    );
+    const subtitle = [
+      `Preset: ${presetName}`,
+      options.framework ? `Framework: ${options.framework}` : null,
+      `Target: ${targetDir}`,
+      dryRun ? '(DRY RUN)' : null
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    logger.banner(`AI Project Bootstrap — ${projectName}`, subtitle);
   }
 
   // 1. Resolve preset & configuration
   const presetHandler = getPreset(presetName);
-  const config = getDefaultConfig(projectName, presetName);
+  const config = getDefaultConfig(projectName, presetName, {
+    framework: options.framework,
+    specWorkflow: options.specWorkflow
+  });
 
   if (options.graft === false) config.codebase.graft = false;
   if (options.skills === false) config.skills.sources = [];

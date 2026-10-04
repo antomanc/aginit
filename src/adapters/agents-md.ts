@@ -8,6 +8,11 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
   const hasBrowser = isWeb && config.browser.playwright;
   const hasVisualAgent = isWeb && config.browser.visualAgent;
 
+  let devCommand = '';
+  if (isWeb && config.framework && config.framework !== 'none') {
+    devCommand = '- Dev Server: `pnpm dev`';
+  }
+
   let testE2E = '';
   if (hasBrowser) {
     testE2E = '- Test (E2E / Browser): `pnpm test:e2e`';
@@ -28,6 +33,11 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
     graftCapability = '- **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.';
   }
 
+  let specWorkflow = '';
+  if (config.skills.workflow === 'spec') {
+    specWorkflow = '- **Spec & Tickets Workflow**: `to-spec`, `to-tickets`, `implement-spec`';
+  }
+
   const sections = [
     `# ${config.name}`,
     '',
@@ -40,6 +50,7 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
     '',
     '## Essential Commands',
     '- Package Manager: `pnpm`',
+    devCommand,
     '- Build: `pnpm build`',
     '- Typecheck: `pnpm typecheck`',
     '- Test: `pnpm test`',
@@ -48,6 +59,7 @@ export function generateAgentsMarkdown(config: AIProjectConfig): string {
     '## AI Capabilities & Skills',
     'Installed skills live in `.agents/skills/` (shared by Antigravity and Codex):',
     '- **Engineering**: `tdd`, `code-review`, `diagnosing-bugs`',
+    specWorkflow,
     uiCapability,
     browserCapability,
     graftCapability,

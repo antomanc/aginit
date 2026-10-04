@@ -9,6 +9,8 @@ program
   .description('Create a brand new AI-first project')
   .argument('<projectName>', 'Name of the project directory to create')
   .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
+  .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+  .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
   .option('--no-skills', 'Skip installing AI skills')
   .option('--no-graft', 'Skip codebase graph (Graft) setup')
   .option('--no-git', 'Skip git repository initialization')
@@ -17,6 +19,8 @@ program
     try {
       await createProject(projectName, {
         preset: options.preset,
+        framework: options.framework,
+        specWorkflow: options.specWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,

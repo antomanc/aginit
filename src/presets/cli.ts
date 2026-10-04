@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { safeWriteFile, writeJsonFile } from '../utils/fs.js';
+import { fileExists, safeWriteFile, writeJsonFile } from '../utils/fs.js';
 import { PresetContext, PresetHandler } from './types.js';
 import { setupAdr } from './adr.js';
 
@@ -31,12 +31,16 @@ export const cliPreset: PresetHandler = {
         '@types/node': '^22.8.0',
         typescript: '^5.6.3',
         vitest: '^2.1.3'
-      },
-      pnpm: {
-        onlyBuiltDependencies: ['esbuild']
       }
     };
     writeJsonFile(path.join(targetDir, 'package.json'), pkg, { dryRun, silent });
+
+    // pnpm-workspace.yaml for pnpm v12+ lifecycle scripts
+    const workspaceYamlPath = path.join(targetDir, 'pnpm-workspace.yaml');
+    if (!fileExists(workspaceYamlPath)) {
+      const workspaceYaml = `allowBuilds:\n  esbuild: true\n`;
+      safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
+    }
 
     // 2. tsconfig.json
     const tsconfig = {

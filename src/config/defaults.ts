@@ -1,21 +1,37 @@
-import { AIProjectConfig, PresetType } from './schema.js';
+import { AIProjectConfig, PresetType, WebFramework } from './schema.js';
 
-export function getDefaultConfig(name: string, preset: PresetType): AIProjectConfig {
+export interface DefaultConfigOptions {
+  framework?: WebFramework;
+  specWorkflow?: boolean;
+}
+
+export function getDefaultConfig(
+  name: string,
+  preset: PresetType,
+  options: DefaultConfigOptions = {}
+): AIProjectConfig {
+  const specWorkflow = !!options.specWorkflow;
+  const mattSkills = specWorkflow
+    ? ['tdd', 'code-review', 'diagnosing-bugs', 'to-spec', 'to-tickets', 'implement-spec']
+    : ['tdd', 'code-review', 'diagnosing-bugs'];
+
   switch (preset) {
     case 'web':
       return {
         version: '1.0.0',
         name,
         preset: 'web',
+        framework: options.framework || 'none',
         agents: {
           primary: 'antigravity',
           secondary: 'codex'
         },
         skills: {
+          workflow: specWorkflow ? 'spec' : 'minimal',
           sources: [
             {
               package: 'mattpocock/skills',
-              skills: ['tdd', 'code-review', 'diagnosing-bugs', 'prototype', 'implement-spec']
+              skills: mattSkills
             },
             {
               package: 'pbakaus/impeccable',
@@ -52,10 +68,11 @@ export function getDefaultConfig(name: string, preset: PresetType): AIProjectCon
           secondary: 'codex'
         },
         skills: {
+          workflow: specWorkflow ? 'spec' : 'minimal',
           sources: [
             {
               package: 'mattpocock/skills',
-              skills: ['tdd', 'code-review', 'diagnosing-bugs', 'codebase-design']
+              skills: mattSkills
             }
           ]
         },
@@ -85,10 +102,11 @@ export function getDefaultConfig(name: string, preset: PresetType): AIProjectCon
           secondary: 'codex'
         },
         skills: {
+          workflow: specWorkflow ? 'spec' : 'minimal',
           sources: [
             {
               package: 'mattpocock/skills',
-              skills: ['tdd', 'code-review', 'diagnosing-bugs']
+              skills: mattSkills
             }
           ]
         },

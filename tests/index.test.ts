@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { run } from '../src/index.js';
+import * as bootstrap from '../src/index.js';
 
-describe('run', () => {
-  it('is a callable async function', async () => {
-    expect(typeof run).toBe('function');
+describe('ai-project-bootstrap main exports', () => {
+  it('exports core CLI and library functions', () => {
+    expect(typeof bootstrap.createProject).toBe('function');
+    expect(typeof bootstrap.initCurrentDirectory).toBe('function');
+    expect(typeof bootstrap.runDoctor).toBe('function');
+    expect(typeof bootstrap.getDefaultConfig).toBe('function');
+    expect(typeof bootstrap.getPreset).toBe('function');
+    expect(typeof bootstrap.listPresets).toBe('function');
   });
 });

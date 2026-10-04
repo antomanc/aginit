@@ -2,20 +2,42 @@ import { describe, it, expect } from 'vitest';
 import { getDefaultConfig } from '../src/config/defaults.js';
 
 describe('Configuration & Defaults', () => {
-  it('generates correct config for web preset', () => {
+  it('generates correct config for web preset with simplified Matt skills', () => {
     const config = getDefaultConfig('my-web-app', 'web');
     expect(config.name).toBe('my-web-app');
     expect(config.preset).toBe('web');
+    expect(config.framework).toBe('none');
     expect(config.agents.primary).toBe('antigravity');
     expect(config.agents.secondary).toBe('codex');
     expect(config.browser.visualAgent).toBe(true);
     expect(config.browser.playwright).toBe(true);
     expect(config.codebase.graft).toBe(true);
 
+    const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
+    expect(mattSource).toBeDefined();
+    // Default Matt skills must only contain the universally useful trio
+    expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
+
     const packages = config.skills.sources.map((s) => s.package);
-    expect(packages).toContain('mattpocock/skills');
     expect(packages).toContain('pbakaus/impeccable');
     expect(packages).toContain('vercel-labs/agent-browser');
+  });
+
+  it('supports optional specWorkflow in config', () => {
+    const config = getDefaultConfig('my-spec-app', 'web', { specWorkflow: true });
+    expect(config.skills.workflow).toBe('spec');
+    const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
+    expect(mattSource?.skills).toContain('to-spec');
+    expect(mattSource?.skills).toContain('to-tickets');
+    expect(mattSource?.skills).toContain('implement-spec');
+  });
+
+  it('supports custom web framework choice', () => {
+    const configVite = getDefaultConfig('my-vite-app', 'web', { framework: 'vite' });
+    expect(configVite.framework).toBe('vite');
+
+    const configNext = getDefaultConfig('my-next-app', 'web', { framework: 'next' });
+    expect(configNext.framework).toBe('next');
   });
 
   it('generates correct config for cli preset', () => {
@@ -25,9 +47,9 @@ describe('Configuration & Defaults', () => {
     expect(config.browser.playwright).toBe(false);
     expect(config.codebase.graft).toBe(true);
 
-    const packages = config.skills.sources.map((s) => s.package);
-    expect(packages).toContain('mattpocock/skills');
-    expect(packages).not.toContain('pbakaus/impeccable');
+    const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
+    expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
+    expect(config.skills.sources.map((s) => s.package)).not.toContain('pbakaus/impeccable');
   });
 
   it('generates correct config for generic preset', () => {

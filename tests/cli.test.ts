@@ -39,10 +39,10 @@ describe('CLI Project Creation', () => {
     }
   });
 
-  it('scaffolds web preset with playwright and vitest', async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-web-test-'));
+  it('scaffolds web preset decoupled from Vite by default (framework=none)', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-web-none-'));
     try {
-      const ok = await createProject('test-web', {
+      const ok = await createProject('test-web-none', {
         preset: 'web',
         skills: false,
         graft: false,
@@ -51,13 +51,34 @@ describe('CLI Project Creation', () => {
       });
 
       expect(ok).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'package.json'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'tsconfig.json'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'vitest.config.ts'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'playwright.config.ts'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'src', 'index.ts'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'tests', 'index.test.ts'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'e2e', 'smoke.spec.ts'))).toBe(true);
+      const pkg = JSON.parse(fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'));
+      // By default, framework is 'none' so vite is NOT added
+      expect(pkg.devDependencies.vite).toBeUndefined();
+      expect(pkg.scripts.build).toBe('tsc');
+      expect(pkg.scripts.test).toBe('vitest run');
+      expect(pkg.scripts['test:e2e']).toBe('playwright test');
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('scaffolds web preset with framework=vite when explicitly requested', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'project-web-vite-'));
+    try {
+      const ok = await createProject('test-web-vite', {
+        preset: 'web',
+        framework: 'vite',
+        skills: false,
+        graft: false,
+        targetDir: tempDir,
+        silent: true
+      });
+
+      expect(ok).toBe(true);
+      const pkg = JSON.parse(fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'));
+      expect(pkg.devDependencies.vite).toBeDefined();
+      expect(pkg.scripts.dev).toBe('vite');
+      expect(pkg.scripts.build).toBe('tsc && vite build');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

@@ -5,7 +5,7 @@ import { runDoctor } from './doctor.js';
 import { updateSkills } from '../adapters/skills.js';
 import { buildGraft } from '../adapters/graft.js';
 import { logger } from '../utils/logger.js';
-import { PresetType } from '../config/schema.js';
+import { PresetType, WebFramework } from '../config/schema.js';
 
 export function createCliProgram(): Command {
   const program = new Command();
@@ -20,6 +20,8 @@ export function createCliProgram(): Command {
     .command('new <projectName>')
     .description('Create a brand new AI-first project')
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
+    .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+    .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -27,6 +29,8 @@ export function createCliProgram(): Command {
     .action(async (projectName: string, options: any) => {
       await createProject(projectName, {
         preset: options.preset as PresetType,
+        framework: options.framework as WebFramework,
+        specWorkflow: options.specWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,
@@ -39,6 +43,8 @@ export function createCliProgram(): Command {
     .command('init')
     .description('Initialize or update AI-first capabilities in the current directory')
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
+    .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+    .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -46,6 +52,8 @@ export function createCliProgram(): Command {
     .action(async (options: any) => {
       await initCurrentDirectory({
         preset: options.preset as PresetType,
+        framework: options.framework as WebFramework,
+        specWorkflow: options.specWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,

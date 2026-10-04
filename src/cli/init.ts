@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { fileExists, readJsonFile } from '../utils/fs.js';
-import { PresetType } from '../config/schema.js';
 import { createProject, NewProjectOptions } from './new.js';
 
 export async function initCurrentDirectory(
