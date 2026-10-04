@@ -89,7 +89,7 @@ try {
   run(npm, ['init', '-y'], workspace);
   run(
     npm,
-    ['install', path.join(workspace, packed.filename), '--no-audit', '--no-fund'],
+    ['install', path.join(workspace, packed.filename), '--no-audit', '--no-fund', '--legacy-peer-deps'],
     workspace
   );
   const entry = path.join(workspace, 'node_modules', '@antomanc', 'aginit', 'bin', 'aginit.js');
@@ -123,7 +123,7 @@ try {
     const dir = path.join(projectsDir, name);
     assert(!fs.existsSync(path.join(dir, 'pnpm-workspace.yaml')));
     assert.match(fs.readFileSync(path.join(dir, '.gitignore'), 'utf8'), /\.env/);
-    run(npm, ['install', '--no-audit', '--no-fund'], dir);
+    run(npm, ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], dir);
     run(npm, ['test'], dir);
     const pkg = manifest(dir);
     if (pkg.scripts.typecheck) run(npm, ['run', 'typecheck'], dir);
@@ -173,7 +173,7 @@ try {
   assert.equal(fs.readFileSync(path.join(existing, 'src', 'index.ts'), 'utf8'), source);
   assert.equal(manifest(existing).scripts.test, 'node --version');
   assert.equal(manifest(existing).custom, true);
-  run(npm, ['install', '--no-audit', '--no-fund'], existing);
+  run(npm, ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], existing);
   run(npm, ['run', 'test:unit'], existing);
   console.log('Packaging and generated-project smoke tests passed.');
 } finally {
