@@ -16,7 +16,7 @@ Aginit initializes software projects ready for AI-assisted development in second
 
 - **Zero vendoring**: Skills and codebase graphs are fetched and configured directly from upstream maintainers via standard package ecosystems (`skills.sh`, `graft`).
 - **Dual-agent parity**: Antigravity and Codex share the exact same `.agents/skills` and `AGENTS.md` conventions without conflicting configurations.
-- **Conservative & idempotent**: Never overwrites existing code destructively; respects your choice of framework and toolchain.
+- **Conservative & idempotent**: Never overwrites existing code destructively; respects your choice of framework, toolchain, and package manager.
 
 ---
 
@@ -37,7 +37,7 @@ Every project bootstrapped with Aginit receives:
    - Vitest for instant unit testing.
    - Playwright for end-to-end browser verification when a web target exists.
 5. **Declarative State (`aginit.config.json`)**:
-   - Versioned project manifest (`schemaVersion: "1.0.0"`) tracking active agents, skills, and presets.
+   - Versioned project manifest (`schemaVersion: "1.0.0"`) tracking active agents, skills, preset, and package manager.
 
 ---
 
@@ -59,15 +59,24 @@ npm install -g @antomanc/aginit
 aginit
 ```
 
-The wizard prompts only for meaningful choices (create new vs initialize existing, project name, preset, framework, workflow) and applies best-practice defaults for everything else.
+The wizard prompts only for meaningful choices:
+1. Action: *Create brand new project* vs *Initialize in current directory*
+2. Project name (when creating a new project)
+3. Preset (`web` | `cli` | `generic`)
+4. Framework (for `web`: `none` | `vite` | `next` | `existing`)
+5. Workflow (`minimal` | `spec`)
+6. Package Manager (`pnpm (Recommended)` | `npm` | `yarn` | `bun`) — *auto-detected and preserved when initializing existing projects*
 
 ### Non-Interactive / Scriptable CLI
 
 All commands accept explicit flags for automated environments and CI:
 
 ```bash
-# Create a new web project directly
-aginit new my-web-app --preset web --framework vite
+# Create a new web project directly with pnpm
+aginit new my-web-app --preset web --framework vite --package-manager pnpm
+
+# Or with npm, yarn, or bun
+aginit new my-app --preset web --package-manager bun
 
 # Or via npx
 npx @antomanc/aginit new my-web-app --preset web
@@ -75,6 +84,17 @@ npx @antomanc/aginit new my-web-app --preset web
 
 Then open the project in **T3 Code**, and tell Antigravity:
 > *"bootstrap this project"*
+
+---
+
+## Package Managers
+
+Aginit provides centralized package manager orchestration:
+- **Supported Managers**: `pnpm` (recommended/default), `npm`, `yarn`, `bun`.
+- **New Projects**: Prompted as the final wizard step, or configured via `--package-manager <pm>`. Stored in `aginit.config.json`.
+- **Existing Projects**: Automatically detects existing lockfiles (`pnpm-lock.yaml`, `bun.lockb`, `yarn.lock`, `package-lock.json`) and preserves your manager without prompting.
+- **Official Scaffolding**: Passes the selected package manager to upstream toolchains (e.g. `--use-pnpm`, `--use-npm`, `--use-yarn`, `--use-bun` for Next.js, and package manager specific create commands for Vite).
+- **Clean Toolchains**: `pnpm-workspace.yaml` and pnpm-specific lifecycle configs are only generated when `pnpm` is the active manager.
 
 ---
 
@@ -122,7 +142,7 @@ cd my-existing-project
 aginit init --preset web
 ```
 
-Aginit will safely preserve all existing files, detecting your current `package.json`, appending non-destructively to `AGENTS.md`, and wiring upstream skills and Graft.
+Aginit will safely preserve all existing files, auto-detect your existing package manager, detect your current `package.json`, append non-destructively to `AGENTS.md`, and wire upstream skills and Graft.
 
 ---
 
@@ -135,12 +155,12 @@ aginit doctor
 ```
 
 Checks:
-- Node.js runtime and pnpm manager
+- Node.js runtime and active project package manager (`pnpm`, `npm`, `yarn`, or `bun`)
 - Git repository state
 - Global Graft CLI availability
 - Codex CLI availability (secondary reviewer)
 - Skills CLI engine functionality
-- `aginit.config.json` schema validation
+- `aginit.config.json` schema validation and package manager setting
 - `AGENTS.md` context and intake section
 - Installed `.agents/skills/` health
 
@@ -154,7 +174,7 @@ Keep your project's skills and codebase graph up to date:
 aginit update
 ```
 
-This runs `npx skills update` across configured sources and refreshes the Graft graph index.
+This runs `skills update` across configured sources and refreshes the Graft graph index.
 
 ---
 

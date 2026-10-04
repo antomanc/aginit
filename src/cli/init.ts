@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileExists, readJsonFile } from '../utils/fs.js';
 import { createProject, NewProjectOptions } from './new.js';
+import { detectPackageManager } from '../adapters/package-manager.js';
 
 export async function initCurrentDirectory(
   options: NewProjectOptions = {}
@@ -16,8 +17,13 @@ export async function initCurrentDirectory(
     }
   }
 
+  // Auto-detect and preserve existing package manager if not explicitly passed
+  const detectedPm = detectPackageManager(currentDir);
+  const packageManager = options.packageManager || detectedPm || 'pnpm';
+
   return createProject(projectName, {
     ...options,
+    packageManager,
     targetDir: currentDir
   });
 }

@@ -8,6 +8,7 @@ export const cliPreset: PresetHandler = {
   description: 'AI-first TypeScript CLI application with Vitest and Commander',
   async scaffold(ctx: PresetContext): Promise<void> {
     const { targetDir, projectName, dryRun, silent } = ctx;
+    const pm = ctx.config.packageManager || 'pnpm';
 
     // 1. package.json
     const pkg = {
@@ -35,11 +36,13 @@ export const cliPreset: PresetHandler = {
     };
     writeJsonFile(path.join(targetDir, 'package.json'), pkg, { dryRun, silent });
 
-    // pnpm-workspace.yaml for pnpm v12+ lifecycle scripts
-    const workspaceYamlPath = path.join(targetDir, 'pnpm-workspace.yaml');
-    if (!fileExists(workspaceYamlPath)) {
-      const workspaceYaml = `allowBuilds:\n  esbuild: true\n`;
-      safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
+    // pnpm-workspace.yaml generated ONLY for pnpm!
+    if (pm === 'pnpm') {
+      const workspaceYamlPath = path.join(targetDir, 'pnpm-workspace.yaml');
+      if (!fileExists(workspaceYamlPath)) {
+        const workspaceYaml = `allowBuilds:\n  esbuild: true\n`;
+        safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
+      }
     }
 
     // 2. tsconfig.json
@@ -83,10 +86,7 @@ run(process.argv.slice(2)).catch((err) => {
     safeWriteFile(path.join(targetDir, 'bin', 'cli.js'), binCli, { dryRun, silent });
 
     // 5. Source code
-    const srcIndex = `export async function run(args: string[] = []): Promise<void> {
-  console.log('${projectName} ready. Args:', args);
-}
-`;
+    const srcIndex = `export async function run(args: string[] = []): Promise<void> {\n  console.log('${projectName} ready. Args:', args);\n}\n`;
     safeWriteFile(path.join(targetDir, 'src', 'index.ts'), srcIndex, { dryRun, silent });
 
     // 6. Unit test

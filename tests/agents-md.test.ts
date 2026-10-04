@@ -13,6 +13,7 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('# demo-web');
     expect(md).toContain('## Core Invariants');
     expect(md).toContain('## Essential Commands');
+    expect(md).toContain('Package Manager: `pnpm`');
     expect(md).toContain('pnpm test:e2e');
     expect(md).toContain('impeccable');
     expect(md).toContain('agent-browser');
@@ -20,12 +21,28 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('bootstrap this project');
   });
 
+  it('reflects selected package manager in Essential Commands', () => {
+    const configNpm = getDefaultConfig('demo-npm', 'web', { framework: 'vite', packageManager: 'npm' });
+    const mdNpm = generateAgentsMarkdown(configNpm);
+
+    expect(mdNpm).toContain('Package Manager: `npm`');
+    expect(mdNpm).toContain('- Build: `npm run build`');
+    expect(mdNpm).toContain('- Test: `npm run test`');
+    expect(mdNpm).toContain('- Test (E2E / Browser): `npm run test:e2e`');
+
+    const configBun = getDefaultConfig('demo-bun', 'web', { framework: 'vite', packageManager: 'bun' });
+    const mdBun = generateAgentsMarkdown(configBun);
+
+    expect(mdBun).toContain('Package Manager: `bun`');
+    expect(mdBun).toContain('- Test: `bun run test`');
+  });
+
   it('generates concise AGENTS.md for cli preset without browser references', () => {
     const config = getDefaultConfig('demo-cli', 'cli');
     const md = generateAgentsMarkdown(config);
 
     expect(md).toContain('# demo-cli');
-    expect(md).not.toContain('pnpm test:e2e');
+    expect(md).not.toContain('test:e2e');
     expect(md).not.toContain('agent-browser');
     expect(md).toContain('## Bootstrap & First Session');
   });

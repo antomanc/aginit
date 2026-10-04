@@ -4,6 +4,7 @@ import { runCommand } from '../utils/shell.js';
 import { PresetContext, PresetHandler } from './types.js';
 import { setupBrowserTesting } from '../adapters/browser.js';
 import { setupAdr } from './adr.js';
+import { getPackageManagerAdapter } from '../adapters/package-manager.js';
 
 export const webPreset: PresetHandler = {
   name: 'web',
@@ -12,23 +13,22 @@ export const webPreset: PresetHandler = {
     const { targetDir, projectName, dryRun, silent, config } = ctx;
     const framework = config.framework || 'none';
     const pkgPath = path.join(targetDir, 'package.json');
+    const pm = config.packageManager || 'pnpm';
+    const pmAdapter = getPackageManagerAdapter(pm);
 
     // If framework is 'vite' or 'next' and package.json does not exist yet,
-    // delegate to official scaffolders
+    // delegate to official scaffolders using selected package manager
     if (!fileExists(pkgPath) && !dryRun) {
       if (framework === 'vite') {
-        await runCommand('pnpm create vite . --template react-ts', {
+        await runCommand(pmAdapter.scaffoldViteCmd('react-ts'), {
           cwd: targetDir,
           silent: true
         });
       } else if (framework === 'next') {
-        await runCommand(
-          'pnpm create next-app . --typescript --eslint --app --no-src-dir --no-tailwind --import-alias "@/*" --use-pnpm',
-          {
-            cwd: targetDir,
-            silent: true
-          }
-        );
+        await runCommand(pmAdapter.scaffoldNextCmd(), {
+          cwd: targetDir,
+          silent: true
+        });
       }
     }
 
@@ -96,11 +96,13 @@ export const webPreset: PresetHandler = {
 
     writeJsonFile(pkgPath, pkg, { dryRun, silent });
 
-    // pnpm-workspace.yaml for pnpm v12+ lifecycle scripts
-    const workspaceYamlPath = path.join(targetDir, 'pnpm-workspace.yaml');
-    if (!fileExists(workspaceYamlPath)) {
-      const workspaceYaml = `allowBuilds:\n  esbuild: true\n`;
-      safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
+    // pnpm-workspace.yaml generated ONLY for pnpm!
+    if (pm === 'pnpm') {
+      const workspaceYamlPath = path.join(targetDir, 'pnpm-workspace.yaml');
+      if (!fileExists(workspaceYamlPath)) {
+        const workspaceYaml = `allowBuilds:\n  esbuild: true\n`;
+        safeWriteFile(workspaceYamlPath, workspaceYaml, { dryRun, silent });
+      }
     }
 
     // 2. tsconfig.json (only if not already created by official scaffolder)
@@ -140,13 +142,7 @@ export default defineConfig({
     // 4. Source & unit test files (only create sample index.ts if no src directory files exist)
     const srcIndexPath = path.join(targetDir, 'src', 'index.ts');
     if (!fileExists(srcIndexPath) && !fileExists(path.join(targetDir, 'src', 'main.tsx')) && !fileExists(path.join(targetDir, 'src', 'App.tsx'))) {
-      const srcIndex = `export function createApp() {
-  return {
-    name: '${projectName}',
-    status: 'ready'
-  };
-}
-`;
+      const srcIndex = `export function createApp() {\n  return {\n    name: '${projectName}',\n    status: 'ready'\n  };\n}\n`;
       safeWriteFile(srcIndexPath, srcIndex, { dryRun, silent });
     }
 

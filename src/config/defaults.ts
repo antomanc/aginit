@@ -1,8 +1,9 @@
-import { AginitConfig, PresetType, WebFramework } from './schema.js';
+import { AginitConfig, PresetType, WebFramework, PackageManager } from './schema.js';
 
 export interface DefaultConfigOptions {
   framework?: WebFramework;
   specWorkflow?: boolean;
+  packageManager?: PackageManager;
 }
 
 export function getDefaultConfig(
@@ -11,6 +12,7 @@ export function getDefaultConfig(
   options: DefaultConfigOptions = {}
 ): AginitConfig {
   const specWorkflow = !!options.specWorkflow;
+  const packageManager = options.packageManager || 'pnpm';
   const mattSkills = specWorkflow
     ? ['tdd', 'code-review', 'diagnosing-bugs', 'to-spec', 'to-tickets', 'implement-spec']
     : ['tdd', 'code-review', 'diagnosing-bugs'];
@@ -25,6 +27,7 @@ export function getDefaultConfig(
         name,
         preset: 'web',
         framework,
+        packageManager,
         agents: {
           primary: 'antigravity',
           secondary: 'codex'
@@ -67,6 +70,7 @@ export function getDefaultConfig(
         schemaVersion: '1.0.0',
         name,
         preset: 'cli',
+        packageManager,
         agents: {
           primary: 'antigravity',
           secondary: 'codex'
@@ -101,6 +105,7 @@ export function getDefaultConfig(
         schemaVersion: '1.0.0',
         name,
         preset: 'generic',
+        packageManager,
         agents: {
           primary: 'antigravity',
           secondary: 'codex'

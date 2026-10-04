@@ -1,7 +1,7 @@
 import path from 'node:path';
 import pc from 'picocolors';
 import { getDefaultConfig } from '../config/defaults.js';
-import { AGINIT_CONFIG_FILENAME, PresetType, WebFramework } from '../config/schema.js';
+import { AGINIT_CONFIG_FILENAME, PresetType, WebFramework, PackageManager } from '../config/schema.js';
 import { getPreset } from '../presets/registry.js';
 import { setupGit } from '../adapters/git.js';
 import { setupAgentsMarkdown } from '../adapters/agents-md.js';
@@ -13,6 +13,7 @@ import { logger } from '../utils/logger.js';
 export interface NewProjectOptions {
   preset?: PresetType;
   framework?: WebFramework;
+  packageManager?: PackageManager;
   specWorkflow?: boolean;
   skills?: boolean;
   graft?: boolean;
@@ -33,11 +34,13 @@ export async function createProject(
 
   const dryRun = !!options.dryRun;
   const silent = !!options.silent;
+  const packageManager = options.packageManager || 'pnpm';
 
   if (!silent) {
     const subtitle = [
       `Preset: ${presetName}`,
       options.framework ? `Framework: ${options.framework}` : null,
+      `PM: ${packageManager}`,
       `Target: ${targetDir}`,
       dryRun ? '(DRY RUN)' : null
     ]
@@ -51,6 +54,7 @@ export async function createProject(
   const presetHandler = getPreset(presetName);
   const config = getDefaultConfig(projectName, presetName, {
     framework: options.framework,
+    packageManager,
     specWorkflow: options.specWorkflow
   });
 
@@ -131,7 +135,7 @@ export async function createProject(
     console.log();
     console.log('Next steps:');
     console.log(pc.cyan(`  cd ${path.relative(process.cwd(), targetDir) || '.'}`));
-    console.log(pc.cyan('  pnpm install'));
+    console.log(pc.cyan(`  ${packageManager} install`));
     console.log(pc.cyan('  Open the repository in T3 Code'));
     console.log(
       pc.dim('  Prompt the agent: ') + pc.bold(pc.green('"bootstrap this project"'))

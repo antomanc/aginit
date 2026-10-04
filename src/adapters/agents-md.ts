@@ -2,20 +2,23 @@ import path from 'node:path';
 import { fileExists, readTextFile, safeWriteFile } from '../utils/fs.js';
 import { AginitConfig } from '../config/schema.js';
 import { logger } from '../utils/logger.js';
+import { getPackageManagerAdapter } from './package-manager.js';
 
 export function generateAgentsMarkdown(config: AginitConfig): string {
   const isWeb = config.preset === 'web';
   const hasBrowser = isWeb && config.browser.playwright;
   const hasVisualAgent = isWeb && config.browser.visualAgent;
+  const pm = config.packageManager || 'pnpm';
+  const pmAdapter = getPackageManagerAdapter(pm);
 
   let devCommand = '';
   if (isWeb && config.framework && config.framework !== 'none') {
-    devCommand = '- Dev Server: `pnpm dev`';
+    devCommand = `- Dev Server: \`${pmAdapter.runCmd('dev')}\``;
   }
 
   let testE2E = '';
   if (hasBrowser) {
-    testE2E = '- Test (E2E / Browser): `pnpm test:e2e`';
+    testE2E = `- Test (E2E / Browser): \`${pmAdapter.runCmd('test:e2e')}\``;
   }
 
   let uiCapability = '';
@@ -49,11 +52,11 @@ export function generateAgentsMarkdown(config: AginitConfig): string {
     '- Never commit broken builds, failed typechecks, or unverified changes.',
     '',
     '## Essential Commands',
-    '- Package Manager: `pnpm`',
+    `- Package Manager: \`${pm}\``,
     devCommand,
-    '- Build: `pnpm build`',
-    '- Typecheck: `pnpm typecheck`',
-    '- Test: `pnpm test`',
+    `- Build: \`${pmAdapter.runCmd('build')}\``,
+    `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\``,
+    `- Test: \`${pmAdapter.runCmd('test')}\``,
     testE2E,
     '',
     '## AI Capabilities & Skills',

@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
-import { PresetType, WebFramework } from '../config/schema.js';
+import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
+import { detectPackageManager } from '../adapters/package-manager.js';
 import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
 
@@ -20,12 +21,14 @@ export interface WizardNewAnswers {
   projectName: string;
   preset: PresetType;
   framework: WebFramework;
+  packageManager: PackageManager;
   specWorkflow: boolean;
 }
 
 export interface WizardInitAnswers {
   preset: PresetType;
   framework: WebFramework;
+  packageManager: PackageManager;
   specWorkflow: boolean;
 }
 
@@ -33,6 +36,7 @@ export async function promptNewProject(defaults?: {
   projectName?: string;
   preset?: PresetType;
   framework?: WebFramework;
+  packageManager?: PackageManager;
   specWorkflow?: boolean;
 }): Promise<WizardNewAnswers> {
   let projectName: string = defaults?.projectName || '';
@@ -90,19 +94,39 @@ export async function promptNewProject(defaults?: {
     specWorkflow = selected === 'spec';
   }
 
+  let packageManager = defaults?.packageManager;
+  if (!packageManager) {
+    const res = await p.select({
+      message: 'Select package manager:',
+      initialValue: 'pnpm',
+      options: [
+        { value: 'pnpm', label: 'pnpm (Recommended)', hint: 'Fast, disk-efficient & compliant workspace' },
+        { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
+        { value: 'yarn', label: 'yarn', hint: 'Yarn package manager' },
+        { value: 'bun', label: 'bun', hint: 'Fast all-in-one JavaScript runtime & toolkit' }
+      ]
+    });
+    packageManager = assertNotCancelled(res) as PackageManager;
+  }
+
   return {
     projectName,
     preset,
     framework,
+    packageManager,
     specWorkflow
   };
 }
 
 export async function promptInitProject(defaults?: {
+  targetDir?: string;
   preset?: PresetType;
   framework?: WebFramework;
+  packageManager?: PackageManager;
   specWorkflow?: boolean;
 }): Promise<WizardInitAnswers> {
+  const targetDir = defaults?.targetDir || process.cwd();
+
   let preset = defaults?.preset;
   if (!preset) {
     const res = await p.select({
@@ -146,9 +170,31 @@ export async function promptInitProject(defaults?: {
     specWorkflow = selected === 'spec';
   }
 
+  // Auto-detect and preserve existing package manager without prompting
+  let packageManager = defaults?.packageManager;
+  if (!packageManager) {
+    const detected = detectPackageManager(targetDir);
+    if (detected) {
+      packageManager = detected;
+    } else {
+      const res = await p.select({
+        message: 'Select package manager for this project:',
+        initialValue: 'pnpm',
+        options: [
+          { value: 'pnpm', label: 'pnpm (Recommended)', hint: 'Fast, disk-efficient workspace' },
+          { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
+          { value: 'yarn', label: 'yarn', hint: 'Yarn package manager' },
+          { value: 'bun', label: 'bun', hint: 'Fast runtime and package manager' }
+        ]
+      });
+      packageManager = assertNotCancelled(res) as PackageManager;
+    }
+  }
+
   return {
     preset,
     framework,
+    packageManager,
     specWorkflow
   };
 }
@@ -173,6 +219,7 @@ export async function runInteractiveWizard(): Promise<void> {
     await createProject(answers.projectName, {
       preset: answers.preset,
       framework: answers.framework,
+      packageManager: answers.packageManager,
       specWorkflow: answers.specWorkflow
     });
   } else {
@@ -181,6 +228,7 @@ export async function runInteractiveWizard(): Promise<void> {
     await initCurrentDirectory({
       preset: answers.preset,
       framework: answers.framework,
+      packageManager: answers.packageManager,
       specWorkflow: answers.specWorkflow
     });
   }

@@ -8,6 +8,7 @@ describe('Configuration & Defaults', () => {
     expect(config.name).toBe('my-web-app');
     expect(config.preset).toBe('web');
     expect(config.framework).toBe('none');
+    expect(config.packageManager).toBe('pnpm');
     expect(config.agents.primary).toBe('antigravity');
     expect(config.agents.secondary).toBe('codex');
     expect(config.browser.visualAgent).toBe(true);
@@ -23,6 +24,17 @@ describe('Configuration & Defaults', () => {
     const packages = config.skills.sources.map((s) => s.package);
     expect(packages).toContain('pbakaus/impeccable');
     expect(packages).toContain('vercel-labs/agent-browser');
+  });
+
+  it('supports explicit packageManager choices: npm, yarn, bun', () => {
+    const configNpm = getDefaultConfig('app-npm', 'web', { packageManager: 'npm' });
+    expect(configNpm.packageManager).toBe('npm');
+
+    const configYarn = getDefaultConfig('app-yarn', 'cli', { packageManager: 'yarn' });
+    expect(configYarn.packageManager).toBe('yarn');
+
+    const configBun = getDefaultConfig('app-bun', 'generic', { packageManager: 'bun' });
+    expect(configBun.packageManager).toBe('bun');
   });
 
   it('supports optional specWorkflow in config', () => {
@@ -49,6 +61,7 @@ describe('Configuration & Defaults', () => {
     expect(config.schemaVersion).toBe('1.0.0');
     expect(config.name).toBe('my-cli-tool');
     expect(config.preset).toBe('cli');
+    expect(config.packageManager).toBe('pnpm');
     expect(config.browser.playwright).toBe(false);
     expect(config.codebase.graft).toBe(true);
 
@@ -62,6 +75,7 @@ describe('Configuration & Defaults', () => {
     expect(config.schemaVersion).toBe('1.0.0');
     expect(config.name).toBe('my-generic-repo');
     expect(config.preset).toBe('generic');
+    expect(config.packageManager).toBe('pnpm');
     expect(config.browser.visualAgent).toBe(false);
     expect(config.skills.sources.length).toBeGreaterThan(0);
   });

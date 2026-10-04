@@ -1,5 +1,6 @@
 export type PresetType = 'web' | 'cli' | 'generic';
 export type WebFramework = 'none' | 'vite' | 'next' | 'existing';
+export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
 
 export interface SkillSourceConfig {
   package: string;
@@ -11,6 +12,7 @@ export interface AginitConfig {
   name: string;
   preset: PresetType;
   framework?: WebFramework;
+  packageManager?: PackageManager;
   agents: {
     primary: string;
     secondary: string;

@@ -5,7 +5,7 @@ import { runDoctor } from './doctor.js';
 import { updateSkills } from '../adapters/skills.js';
 import { buildGraft } from '../adapters/graft.js';
 import { logger } from '../utils/logger.js';
-import { PresetType, WebFramework } from '../config/schema.js';
+import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
 import {
   isInteractive,
   promptNewProject,
@@ -36,6 +36,7 @@ export function createCliProgram(): Command {
     .description('Create a brand new AI-first project')
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+    .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun', 'pnpm')
     .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
@@ -45,6 +46,7 @@ export function createCliProgram(): Command {
       let finalName = projectName;
       let finalPreset = options.preset;
       let finalFramework = options.framework;
+      let finalPackageManager = options.packageManager;
       let finalSpecWorkflow = options.specWorkflow;
 
       if (!finalName) {
@@ -54,17 +56,20 @@ export function createCliProgram(): Command {
         const answers = await promptNewProject({
           preset: command.getOptionValueSource('preset') === 'cli' ? (options.preset as PresetType) : undefined,
           framework: command.getOptionValueSource('framework') === 'cli' ? (options.framework as WebFramework) : undefined,
+          packageManager: command.getOptionValueSource('packageManager') === 'cli' ? (options.packageManager as PackageManager) : undefined,
           specWorkflow: command.getOptionValueSource('specWorkflow') === 'cli' ? options.specWorkflow : undefined
         });
         finalName = answers.projectName;
         finalPreset = answers.preset;
         finalFramework = answers.framework;
+        finalPackageManager = answers.packageManager;
         finalSpecWorkflow = answers.specWorkflow;
       }
 
       await createProject(finalName, {
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
+        packageManager: finalPackageManager as PackageManager,
         specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,
@@ -79,6 +84,7 @@ export function createCliProgram(): Command {
     .description('Initialize or update AI-first capabilities in the current directory')
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+    .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun')
     .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
@@ -87,26 +93,31 @@ export function createCliProgram(): Command {
     .action(async (options: any, command: Command) => {
       let finalPreset = options.preset;
       let finalFramework = options.framework;
+      let finalPackageManager = options.packageManager;
       let finalSpecWorkflow = options.specWorkflow;
 
       const isPresetExplicit = command.getOptionValueSource('preset') === 'cli';
       const isFrameworkExplicit = command.getOptionValueSource('framework') === 'cli';
+      const isPmExplicit = command.getOptionValueSource('packageManager') === 'cli';
       const isSpecExplicit = command.getOptionValueSource('specWorkflow') === 'cli';
 
       if (isInteractive() && !isPresetExplicit && !options.dryRun) {
         const answers = await promptInitProject({
           preset: isPresetExplicit ? (options.preset as PresetType) : undefined,
           framework: isFrameworkExplicit ? (options.framework as WebFramework) : undefined,
+          packageManager: isPmExplicit ? (options.packageManager as PackageManager) : undefined,
           specWorkflow: isSpecExplicit ? options.specWorkflow : undefined
         });
         finalPreset = answers.preset;
         finalFramework = answers.framework;
+        finalPackageManager = answers.packageManager;
         finalSpecWorkflow = answers.specWorkflow;
       }
 
       await initCurrentDirectory({
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
+        packageManager: finalPackageManager as PackageManager,
         specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,

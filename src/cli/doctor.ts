@@ -5,8 +5,10 @@ import { fileExists, readJsonFile, readTextFile } from '../utils/fs.js';
 import {
   AGINIT_CONFIG_FILENAME,
   LEGACY_CONFIG_FILENAME,
-  AginitConfig
+  AginitConfig,
+  PackageManager
 } from '../config/schema.js';
+import { detectPackageManager } from '../adapters/package-manager.js';
 import { getInstalledSkills } from '../adapters/skills.js';
 import { logger } from '../utils/logger.js';
 
@@ -22,6 +24,20 @@ interface CheckItem {
 export async function runDoctor(targetDir: string = process.cwd()): Promise<void> {
   logger.banner('Aginit — System & Project Doctor', `Target: ${targetDir}`);
 
+  // Resolve project config early to detect configured package manager
+  let configPath = path.join(targetDir, AGINIT_CONFIG_FILENAME);
+  if (!fileExists(configPath)) {
+    const legacyPath = path.join(targetDir, LEGACY_CONFIG_FILENAME);
+    if (fileExists(legacyPath)) {
+      configPath = legacyPath;
+    }
+  }
+
+  const configExists = fileExists(configPath);
+  const projectConfig = configExists ? readJsonFile<AginitConfig>(configPath) : null;
+  const activePm: PackageManager =
+    projectConfig?.packageManager || detectPackageManager(targetDir) || 'pnpm';
+
   const checks: CheckItem[] = [];
 
   // 1. Node.js check
@@ -35,15 +51,19 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     suggestion: nodeRes.ok ? undefined : 'Install Node.js (>= 20 recommended) via nvm or brew'
   });
 
-  // 2. pnpm check
-  const pnpmRes = await runCommand('pnpm -v', { silent: true });
+  // 2. Active Package Manager check (pnpm, npm, yarn, or bun)
+  const pmRes = await runCommand(`${activePm} -v`, { silent: true });
   checks.push({
-    name: 'pnpm package manager',
+    name: `${activePm} package manager`,
     category: 'Environment',
-    ok: pnpmRes.ok,
-    version: pnpmRes.stdout,
-    detail: pnpmRes.ok ? `Installed (${pnpmRes.stdout})` : 'pnpm is not found in PATH',
-    suggestion: pnpmRes.ok ? undefined : 'Install pnpm: `npm install -g pnpm`'
+    ok: pmRes.ok,
+    version: pmRes.stdout,
+    detail: pmRes.ok
+      ? `Installed (${pmRes.stdout})`
+      : `${activePm} is not found in PATH`,
+    suggestion: pmRes.ok
+      ? undefined
+      : `Install ${activePm} (${activePm === 'pnpm' ? 'npm install -g pnpm' : activePm === 'bun' ? 'curl -fsSL https://bun.sh/install | bash' : 'install ' + activePm})`
   });
 
   // 3. Git check
@@ -98,24 +118,13 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     suggestion: skillsRes.ok ? undefined : 'Check network connectivity or npm/npx configuration'
   });
 
-  // 7. Project-level checks (if target dir has aginit.config.json / ai.config.json or AGENTS.md)
-  let configPath = path.join(targetDir, AGINIT_CONFIG_FILENAME);
-  if (!fileExists(configPath)) {
-    const legacyPath = path.join(targetDir, LEGACY_CONFIG_FILENAME);
-    if (fileExists(legacyPath)) {
-      configPath = legacyPath;
-    }
-  }
-
-  const configExists = fileExists(configPath);
-  const projectConfig = configExists ? readJsonFile<AginitConfig>(configPath) : null;
-
+  // 7. Project-level checks
   checks.push({
     name: `Project configuration (${path.basename(configPath)})`,
     category: 'Project Config',
     ok: !!projectConfig,
     detail: projectConfig
-      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
+      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), pm: ${activePm}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
       : 'No aginit.config.json found in current directory',
     suggestion: projectConfig ? undefined : 'Run `aginit init` to generate declarative configuration'
   });
