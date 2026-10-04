@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "name": "ai-project-bootstrap",
+  "preset": "cli",
+  "agents": {
+    "primary": "antigravity",
+    "secondary": "codex"
+  },
+  "skills": {
+    "sources": []
+  },
+  "codebase": {
+    "graft": false
+  },
+  "browser": {
+    "visualAgent": false,
+    "playwright": false
+  },
+  "docs": {
+    "adr": true
+  },
+  "github": {
+    "ci": true
+  }
+}

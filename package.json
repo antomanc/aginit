@@ -1,0 +1,35 @@
+{
+  "name": "ai-project-bootstrap",
+  "version": "0.1.0",
+  "description": "Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ai": "./bin/ai.js",
+    "ai-new": "./bin/ai-new.js",
+    "ai-init": "./bin/ai-init.js",
+    "ai-doctor": "./bin/ai-doctor.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  },
+  "license": "MIT"
+}
