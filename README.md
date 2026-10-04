@@ -35,13 +35,20 @@ Every project bootstrapped with Aginit receives:
    - A short, non-invasive intake contract and invariant guide that agents parse immediately upon opening the repository in T3 Code.
 4. **Deterministic Testing Harness**:
    - Vitest for instant unit testing.
-   - Playwright for end-to-end browser verification when a web target exists.
+   - Playwright for browser testing when a web framework is selected. Its starter test is explicitly skipped until you supply an application URL and real assertions.
 5. **Declarative State (`aginit.config.json`)**:
    - Versioned project manifest (`schemaVersion: "1.0.0"`) tracking active agents, skills, preset, and package manager.
 
 ---
 
 ## Quickstart
+
+### Prerequisites
+
+- Node.js **22.12 or newer** (use a supported Node LTS release).
+- Git and npm/npx in `PATH`; install your selected package manager before using it.
+- Internet access for official framework scaffolders and upstream skills.
+- Optional Graft CLI: `npm install -g @nanonets/graft`. Use `--no-graft` to omit it.
 
 ### Interactive Wizard (Recommended)
 
@@ -90,7 +97,7 @@ Then open the project in **T3 Code**, and tell Antigravity:
 ## Package Managers
 
 Aginit provides centralized package manager orchestration:
-- **Supported Managers**: `pnpm` (recommended/default), `npm`, `yarn`, `bun`.
+- **Supported Managers**: `pnpm` (recommended/default), `npm`, `yarn` (Classic or modern), `bun`.
 - **New Projects**: Prompted as the final wizard step, or configured via `--package-manager <pm>`. Stored in `aginit.config.json`.
 - **Existing Projects**: Automatically detects existing lockfiles (`pnpm-lock.yaml`, `bun.lockb`, `yarn.lock`, `package-lock.json`) and preserves your manager without prompting.
 - **Official Scaffolding**: Passes the selected package manager to upstream toolchains (e.g. `--use-pnpm`, `--use-npm`, `--use-yarn`, `--use-bun` for Next.js, and package manager specific create commands for Vite).
@@ -142,13 +149,15 @@ cd my-existing-project
 aginit init --preset web
 ```
 
-Aginit will safely preserve all existing files, auto-detect your existing package manager, detect your current `package.json`, append non-destructively to `AGENTS.md`, and wire upstream skills and Graft.
+Aginit preserves application source, custom scripts, dependency versions, and existing test configurations. The web and CLI presets add missing test tooling to `package.json`; custom test runners get a separate `test:unit` script. The generic preset leaves an existing project manifest untouched.
+
+Repeat `aginit init` preserves the saved preset, framework, agents, workflow, skill sources, and extension fields. Explicit options override the requested setting. Invalid JSON or configuration is reported before initialization changes files. `--no-skills` skips installation without erasing an existing configuration's sources.
 
 ---
 
 ## Diagnostics (`aginit doctor`)
 
-Run the health check at any time to verify system tooling and repository agent readiness:
+Run the health check at any time to inspect system tooling and repository agent readiness (it may download the upstream Skills CLI through npx):
 
 ```bash
 aginit doctor
@@ -174,7 +183,7 @@ Keep your project's skills and codebase graph up to date:
 aginit update
 ```
 
-This runs `skills update` across configured sources and refreshes the Graft graph index.
+This runs the upstream project-scoped `skills update` and refreshes the Graft graph index. Disabled integrations are skipped; failed updates return a nonzero exit status.
 
 ---
 
@@ -187,14 +196,33 @@ aginit new test-project --preset web --dry-run
 aginit init --dry-run
 ```
 
-All operations are non-destructive and idempotent.
+Existing application files are preserved. Manifest additions and explicit configuration changes are intentional; rerunning the same initialization is idempotent. Framework scaffold failures stop the command instead of generating a substitute app.
+
+Missing Graft or failed skill installation produces an actionable warning and a nonzero exit status. The scaffold is retained so you can resolve the prerequisite and rerun `aginit init`.
+
+`--dry-run` prints planned operations without creating files or downloading framework tools. Upstream-generated files cannot be enumerated until the real scaffolder runs.
+
+---
+
+## Development & Release Verification
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check                 # typecheck, tests, build, dependency audit
+pnpm smoke                 # install the tarball and verify generated consumer projects
+pnpm smoke --frameworks    # additionally scaffold, test, build, and serve Vite and Next.js
+pnpm smoke --package-managers # verify native pnpm, Yarn, and Bun consumer commands
+npm pack --dry-run
+```
+
+The framework smoke test downloads upstream tools and dependencies. The generated generic project has a working Vitest starter harness; application-specific assertions remain yours to write. `npm publish` runs the checks and base consumer smoke test before publication.
 
 ---
 
 ## Upstream Licenses Notice
 
 Aginit integrates and configures independent open-source software and skills:
-- **Graft**: Copyright © open-code/graft contributors
+- **Graft**: Copyright © NanoNets / Graft contributors
 - **skills.sh**: Copyright © Vercel Inc. and contributors
 - **Matt Pocock Skills**: Copyright © Matt Pocock
 - **Impeccable**: Copyright © Peter Bak-Hansen

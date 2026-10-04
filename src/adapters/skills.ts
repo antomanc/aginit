@@ -1,18 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileExists, readJsonFile } from '../utils/fs.js';
-import { runCommand } from '../utils/shell.js';
+import { runExecutable } from '../utils/shell.js';
 import { logger } from '../utils/logger.js';
+import { validateUpstreamArgument } from '../config/validation.js';
 import { SkillSourceConfig } from '../config/schema.js';
 
 export interface SkillsLockFile {
   version: number;
-  skills: Record<string, {
-    source: string;
-    sourceType: string;
-    skillPath: string;
-    computedHash: string;
-  }>;
+  skills: Record<
+    string,
+    {
+      source: string;
+      sourceType: string;
+      skillPath: string;
+      computedHash: string;
+    }
+  >;
 }
 
 export interface SkillInstallOptions {
@@ -28,16 +32,26 @@ export async function installSkillSource(
 ): Promise<{ ok: boolean; message?: string }> {
   const { agents = ['antigravity', 'codex'], dryRun = false, silent = false } = options;
 
-  const agentFlags = agents.join(' ');
-  const skillFlags = source.skills.length > 0 ? source.skills.join(' ') : '*';
-
-  const cmd = `npx -y skills add ${source.package} --skill ${skillFlags} --agent ${agentFlags} -y`;
+  validateUpstreamArgument(source.package, 'skill package');
+  for (const skill of source.skills) validateUpstreamArgument(skill, 'skill name');
+  for (const agent of agents) validateUpstreamArgument(agent, 'agent');
+  const args = [
+    '-y',
+    'skills',
+    'add',
+    source.package,
+    '--skill',
+    ...(source.skills.length ? source.skills : ['*']),
+    '--agent',
+    ...agents,
+    '-y'
+  ];
 
   if (!silent) {
     logger.dim(`Installing skills from ${source.package}: ${source.skills.join(', ')}...`);
   }
 
-  const res = await runCommand(cmd, { cwd: targetDir, dryRun, silent: true });
+  const res = await runExecutable('npx', args, { cwd: targetDir, dryRun, silent: true });
   if (!res.ok) {
     logger.warn(`Failed installing skills from ${source.package}: ${res.stderr || res.stdout}`);
     return { ok: false, message: res.stderr || res.stdout };
@@ -57,9 +71,9 @@ export async function installAllSkills(
   for (const source of sources) {
     const res = await installSkillSource(targetDir, source, options);
     if (res.ok) {
-      installed.push(...source.skills);
+      installed.push(...(source.skills.length ? source.skills : [`${source.package}:*`]));
     } else {
-      failed.push(...source.skills);
+      failed.push(...(source.skills.length ? source.skills : [`${source.package}:*`]));
     }
   }
 
@@ -94,7 +108,7 @@ export async function updateSkills(
 ): Promise<boolean> {
   const { dryRun = false, silent = false } = options;
   if (!silent) logger.dim('Updating installed skills...');
-  const res = await runCommand('npx -y skills update -p -y', {
+  const res = await runExecutable('npx', ['-y', 'skills', 'update', '-p', '-y'], {
     cwd: targetDir,
     dryRun,
     silent: true

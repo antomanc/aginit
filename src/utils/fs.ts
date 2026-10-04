@@ -6,6 +6,7 @@ export interface WriteFileOptions {
   overwrite?: boolean;
   dryRun?: boolean;
   silent?: boolean;
+  mode?: number;
 }
 
 export function ensureDir(dirPath: string, dryRun = false): void {
@@ -27,7 +28,7 @@ export function safeWriteFile(
   content: string,
   options: WriteFileOptions = {}
 ): boolean {
-  const { overwrite = false, dryRun = false, silent = false } = options;
+  const { overwrite = false, dryRun = false, silent = false, mode } = options;
 
   if (fileExists(filePath) && !overwrite) {
     if (!silent) {
@@ -42,7 +43,14 @@ export function safeWriteFile(
   }
 
   ensureDir(path.dirname(filePath), false);
-  fs.writeFileSync(filePath, content, 'utf-8');
+  fs.writeFileSync(filePath, content, { encoding: 'utf-8', mode });
+  if (mode !== undefined && process.platform !== 'win32') {
+    try {
+      fs.chmodSync(filePath, mode);
+    } catch {
+      // ignore in environments that do not permit chmod
+    }
+  }
   return true;
 }
 

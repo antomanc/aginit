@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
+import { validateProjectName, readProjectConfig } from '../config/validation.js';
 import { detectPackageManager } from '../adapters/package-manager.js';
 import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
@@ -46,7 +47,11 @@ export async function promptNewProject(defaults?: {
       placeholder: 'my-ai-project',
       validate: (val) => {
         if (!val || val.trim().length === 0) return 'Project name is required';
-        if (/[^a-zA-Z0-9._-]/.test(val)) return 'Project name can only contain letters, numbers, dashes, and underscores';
+        try {
+          validateProjectName(val.trim());
+        } catch (error) {
+          return error instanceof Error ? error.message : 'Invalid project name';
+        }
       }
     });
     projectName = String(assertNotCancelled(res)).trim();
@@ -58,22 +63,38 @@ export async function promptNewProject(defaults?: {
       message: 'Select a project preset:',
       initialValue: 'web',
       options: [
-        { value: 'web', label: 'Web Application', hint: 'React, Next.js, Vite, or agnostic + Vitest/Playwright' },
+        {
+          value: 'web',
+          label: 'Web Application',
+          hint: 'React, Next.js, Vite, or agnostic + Vitest/Playwright'
+        },
         { value: 'cli', label: 'CLI Tool', hint: 'TypeScript, Commander, Picocolors + Vitest' },
-        { value: 'generic', label: 'Generic / Existing Codebase', hint: 'Codebase graph + agent intake guide' }
+        {
+          value: 'generic',
+          label: 'Generic / Existing Codebase',
+          hint: 'Codebase graph + agent intake guide'
+        }
       ]
     });
     preset = assertNotCancelled(res) as PresetType;
   }
 
   let framework: WebFramework = defaults?.framework || 'none';
-  if (preset === 'web' && (!defaults?.framework || defaults.framework === 'none')) {
+  if (preset === 'web' && defaults?.framework === undefined) {
     const res = await p.select({
       message: 'Choose a web framework:',
       initialValue: 'none',
       options: [
-        { value: 'none', label: 'Framework-agnostic (Recommended)', hint: 'Clean TypeScript + Vitest, zero bundler lock-in' },
-        { value: 'vite', label: 'Vite', hint: 'Official Vite React-TS scaffolder + Playwright E2E' },
+        {
+          value: 'none',
+          label: 'Framework-agnostic (Recommended)',
+          hint: 'Clean TypeScript + Vitest, zero bundler lock-in'
+        },
+        {
+          value: 'vite',
+          label: 'Vite',
+          hint: 'Official Vite React-TS scaffolder + Playwright E2E'
+        },
         { value: 'next', label: 'Next.js', hint: 'Official create-next-app + Playwright E2E' }
       ]
     });
@@ -86,8 +107,16 @@ export async function promptNewProject(defaults?: {
       message: 'Select AI engineering workflow:',
       initialValue: 'minimal',
       options: [
-        { value: 'minimal', label: 'Standard Workflow (Recommended)', hint: 'TDD, Code Review, Diagnosing Bugs' },
-        { value: 'spec', label: 'Spec & Tickets Workflow', hint: 'Adds to-spec, to-tickets, implement-spec' }
+        {
+          value: 'minimal',
+          label: 'Standard Workflow (Recommended)',
+          hint: 'TDD, Code Review, Diagnosing Bugs'
+        },
+        {
+          value: 'spec',
+          label: 'Spec & Tickets Workflow',
+          hint: 'Adds to-spec, to-tickets, implement-spec'
+        }
       ]
     });
     const selected = assertNotCancelled(res);
@@ -100,7 +129,11 @@ export async function promptNewProject(defaults?: {
       message: 'Select package manager:',
       initialValue: 'pnpm',
       options: [
-        { value: 'pnpm', label: 'pnpm (Recommended)', hint: 'Fast, disk-efficient & compliant workspace' },
+        {
+          value: 'pnpm',
+          label: 'pnpm (Recommended)',
+          hint: 'Fast, disk-efficient & compliant workspace'
+        },
         { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
         { value: 'yarn', label: 'yarn', hint: 'Yarn package manager' },
         { value: 'bun', label: 'bun', hint: 'Fast all-in-one JavaScript runtime & toolkit' }
@@ -135,19 +168,27 @@ export async function promptInitProject(defaults?: {
       options: [
         { value: 'web', label: 'Web Application', hint: 'Impeccable UI, agent-browser, Vitest' },
         { value: 'cli', label: 'CLI Tool', hint: 'TypeScript, Vitest' },
-        { value: 'generic', label: 'Generic Repository', hint: 'Codebase graph + agent intake guide' }
+        {
+          value: 'generic',
+          label: 'Generic Repository',
+          hint: 'Codebase graph + agent intake guide'
+        }
       ]
     });
     preset = assertNotCancelled(res) as PresetType;
   }
 
   let framework: WebFramework = defaults?.framework || 'existing';
-  if (preset === 'web' && (!defaults?.framework || defaults.framework === 'none')) {
+  if (preset === 'web' && defaults?.framework === undefined) {
     const res = await p.select({
       message: 'Select web framework setting:',
       initialValue: 'existing',
       options: [
-        { value: 'existing', label: 'Existing Web Setup (Recommended)', hint: 'Preserve existing bundler and dependencies' },
+        {
+          value: 'existing',
+          label: 'Existing Web Setup (Recommended)',
+          hint: 'Preserve existing bundler and dependencies'
+        },
         { value: 'none', label: 'Framework-agnostic', hint: 'Baseline TypeScript' },
         { value: 'vite', label: 'Vite', hint: 'Vite React setup' },
         { value: 'next', label: 'Next.js', hint: 'Next.js setup' }
@@ -162,8 +203,16 @@ export async function promptInitProject(defaults?: {
       message: 'Select AI engineering workflow:',
       initialValue: 'minimal',
       options: [
-        { value: 'minimal', label: 'Standard Workflow (Recommended)', hint: 'TDD, Code Review, Diagnosing Bugs' },
-        { value: 'spec', label: 'Spec & Tickets Workflow', hint: 'Adds to-spec, to-tickets, implement-spec' }
+        {
+          value: 'minimal',
+          label: 'Standard Workflow (Recommended)',
+          hint: 'TDD, Code Review, Diagnosing Bugs'
+        },
+        {
+          value: 'spec',
+          label: 'Spec & Tickets Workflow',
+          hint: 'Adds to-spec, to-tickets, implement-spec'
+        }
       ]
     });
     const selected = assertNotCancelled(res);
@@ -207,29 +256,45 @@ export async function runInteractiveWizard(): Promise<void> {
       message: 'What would you like to do?',
       initialValue: 'new',
       options: [
-        { value: 'new', label: 'Create a brand new AI-first project', hint: 'Scaffold in a new directory' },
-        { value: 'init', label: 'Initialize AI capabilities in current directory', hint: 'Add AGENTS.md, skills & Graft safely' }
+        {
+          value: 'new',
+          label: 'Create a brand new AI-first project',
+          hint: 'Scaffold in a new directory'
+        },
+        {
+          value: 'init',
+          label: 'Initialize AI capabilities in current directory',
+          hint: 'Add AGENTS.md, skills & Graft safely'
+        }
       ]
     })
   );
 
+  let complete: boolean;
   if (action === 'new') {
     const answers = await promptNewProject();
     p.outro(pc.cyan(`Scaffolding "${answers.projectName}"...`));
-    await createProject(answers.projectName, {
+    complete = await createProject(answers.projectName, {
       preset: answers.preset,
       framework: answers.framework,
       packageManager: answers.packageManager,
       specWorkflow: answers.specWorkflow
     });
   } else {
-    const answers = await promptInitProject();
-    p.outro(pc.cyan('Configuring current directory...'));
-    await initCurrentDirectory({
-      preset: answers.preset,
-      framework: answers.framework,
-      packageManager: answers.packageManager,
-      specWorkflow: answers.specWorkflow
-    });
+    const saved = readProjectConfig(process.cwd());
+    if (saved) {
+      p.outro(pc.cyan('Configuring current directory using saved settings...'));
+      complete = await initCurrentDirectory();
+    } else {
+      const answers = await promptInitProject();
+      p.outro(pc.cyan('Configuring current directory...'));
+      complete = await initCurrentDirectory({
+        preset: answers.preset,
+        framework: answers.framework,
+        packageManager: answers.packageManager,
+        specWorkflow: answers.specWorkflow
+      });
+    }
   }
+  if (!complete) process.exitCode = 1;
 }

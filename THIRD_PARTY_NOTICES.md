@@ -6,8 +6,8 @@ Each integrated upstream tool is governed by its respective authors and licenses
 
 - **Graft**
   - Project: Codebase understanding & context graph CLI
-  - Author: open-code / Graft contributors
-  - Repository: https://github.com/open-code/graft
+  - Author: NanoNets / Graft contributors
+  - Repository: https://github.com/NanoNets/context-graph-engine
 
 - **Skills CLI / skills.sh**
   - Project: Decentralized agent skill package installer

@@ -18,8 +18,7 @@ Thank you for your interest in contributing to Aginit!
 
 2. Run typecheck and automated tests:
    ```bash
-   pnpm typecheck
-   pnpm test
+   pnpm check
    ```
 
 3. Build the TypeScript distribution:
@@ -29,11 +28,12 @@ Thank you for your interest in contributing to Aginit!
 
 4. Test locally with the CLI:
    ```bash
-   ./bin/aginit --help
-   ./bin/aginit doctor
+   node ./bin/aginit.js --help
+   node ./bin/aginit.js doctor
    ```
 
 5. Before opening a pull request:
    - Ensure all tests pass (`pnpm test`).
-   - Run typechecking (`pnpm typecheck`).
+   - Run typechecking (`pnpm typecheck`) and `pnpm audit`.
+   - Verify packed consumer projects with `pnpm smoke`; use `pnpm smoke --frameworks` for scaffolding changes.
    - Keep commits focused and descriptive.

@@ -1,8 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createProject } from '../src/cli/new.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+
+vi.mock('../src/utils/shell.js', async (original) => ({
+  ...(await original<typeof import('../src/utils/shell.js')>()),
+  runExecutable: vi.fn(async (bin, args, options) => {
+    if (args.some((arg: string) => arg.includes('create-vite'))) {
+      fs.mkdirSync(path.join(options.cwd, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(options.cwd, 'index.html'), '<div id="root"></div>');
+      fs.writeFileSync(path.join(options.cwd, 'src/main.tsx'), 'export const app = true;');
+      fs.writeFileSync(
+        path.join(options.cwd, 'package.json'),
+        JSON.stringify({
+          name: 'test-web-vite',
+          type: 'module',
+          scripts: { dev: 'vite', build: 'tsc -b && vite build' },
+          devDependencies: { vite: '^6.0.0' }
+        })
+      );
+      return { ok: true, exitCode: 0, stdout: '', stderr: '' };
+    }
+    const actual =
+      await vi.importActual<typeof import('../src/utils/shell.js')>('../src/utils/shell.js');
+    return actual.runExecutable(bin, args, options);
+  })
+}));
 
 describe('CLI Project Creation', () => {
   it('supports dry-run without writing any files', async () => {
@@ -36,7 +60,9 @@ describe('CLI Project Creation', () => {
       expect(config.packageManager).toBe('pnpm');
       expect(fs.existsSync(path.join(tempDir, 'AGENTS.md'))).toBe(true);
       expect(fs.existsSync(path.join(tempDir, '.gitignore'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, 'docs', 'adr', '0001-record-architecture-decisions.md'))).toBe(true);
+      expect(
+        fs.existsSync(path.join(tempDir, 'docs', 'adr', '0001-record-architecture-decisions.md'))
+      ).toBe(true);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -107,7 +133,7 @@ describe('CLI Project Creation', () => {
       const pkg = JSON.parse(fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'));
       expect(pkg.devDependencies.vite).toBeDefined();
       expect(pkg.scripts.dev).toBe('vite');
-      expect(pkg.scripts.build).toBe('tsc && vite build');
+      expect(pkg.scripts.build).toContain('vite build');
       expect(pkg.scripts['test:e2e']).toBe('playwright test');
       expect(fs.existsSync(path.join(tempDir, 'playwright.config.ts'))).toBe(true);
     } finally {

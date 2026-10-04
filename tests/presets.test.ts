@@ -85,6 +85,13 @@ describe('Preset Registry', () => {
     });
     expect(fs.existsSync(path.join(pnpmDir, 'pnpm-workspace.yaml'))).toBe(true);
 
+    const binFile = path.join(pnpmDir, 'bin', 'cli.js');
+    expect(fs.existsSync(binFile)).toBe(true);
+    if (process.platform !== 'win32') {
+      const mode = fs.statSync(binFile).mode & 0o777;
+      expect(mode & 0o111).toBeTruthy();
+    }
+
     // Test with bun
     const bunDir = path.join(tmpDir, 'bun-cli-test');
     fs.mkdirSync(bunDir);

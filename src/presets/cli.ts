@@ -1,14 +1,32 @@
 import path from 'node:path';
 import { fileExists, safeWriteFile, writeJsonFile } from '../utils/fs.js';
 import { PresetContext, PresetHandler } from './types.js';
+import { readPackageManifest } from '../config/validation.js';
+import { addTestingDependencies, setupTesting, VITEST_VERSION } from './testing.js';
 import { setupAdr } from './adr.js';
 
 export const cliPreset: PresetHandler = {
   name: 'cli',
-  description: 'AI-first TypeScript CLI application with Vitest and Commander',
+  description: 'AI-first TypeScript CLI application with Commander, Picocolors, and Vitest',
   async scaffold(ctx: PresetContext): Promise<void> {
     const { targetDir, projectName, dryRun, silent } = ctx;
     const pm = ctx.config.packageManager || 'pnpm';
+
+    const existing = readPackageManifest(targetDir);
+    if (existing) {
+      const hadVitestScript = Object.values(existing.scripts || {}).some(
+        (script) => typeof script === 'string' && /^vitest(?:\s|$)/.test(script)
+      );
+      addTestingDependencies(existing);
+      writeJsonFile(path.join(targetDir, 'package.json'), existing, {
+        overwrite: true,
+        dryRun,
+        silent
+      });
+      setupTesting(ctx, hadVitestScript);
+      if (ctx.config.docs.adr) setupAdr(targetDir, { dryRun, silent });
+      return;
+    }
 
     // 1. package.json
     const pkg = {
@@ -16,13 +34,14 @@ export const cliPreset: PresetHandler = {
       version: '0.1.0',
       type: 'module',
       bin: {
-        [projectName]: './bin/cli.js'
+        [projectName.split('/').pop()!]: './bin/cli.js'
       },
       scripts: {
         build: 'tsc',
         test: 'vitest run',
         'test:watch': 'vitest',
-        typecheck: 'tsc --noEmit'
+        typecheck: 'tsc --noEmit',
+        prepack: 'tsc'
       },
       dependencies: {
         commander: '^12.1.0',
@@ -31,7 +50,7 @@ export const cliPreset: PresetHandler = {
       devDependencies: {
         '@types/node': '^22.8.0',
         typescript: '^5.6.3',
-        vitest: '^2.1.3'
+        vitest: VITEST_VERSION
       }
     };
     writeJsonFile(path.join(targetDir, 'package.json'), pkg, { dryRun, silent });
@@ -54,10 +73,9 @@ export const cliPreset: PresetHandler = {
         lib: ['ES2022'],
         strict: true,
         skipLibCheck: true,
-        esModuleInterop: true,
-        forceConsistentCasingInFileNames: true,
-        outDir: './dist',
-        rootDir: './src'
+        outDir: 'dist',
+        rootDir: 'src',
+        declaration: true
       },
       include: ['src/**/*']
     };
@@ -68,7 +86,7 @@ export const cliPreset: PresetHandler = {
 
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts']
+    include: ['tests/**/*.test.{js,ts}']
   }
 });
 `;
@@ -83,23 +101,32 @@ run(process.argv.slice(2)).catch((err) => {
   process.exit(1);
 });
 `;
-    safeWriteFile(path.join(targetDir, 'bin', 'cli.js'), binCli, { dryRun, silent });
+    safeWriteFile(path.join(targetDir, 'bin', 'cli.js'), binCli, {
+      dryRun,
+      silent,
+      mode: 0o755
+    });
 
     // 5. Source code
-    const srcIndex = `export async function run(args: string[] = []): Promise<void> {\n  console.log('${projectName} ready. Args:', args);\n}\n`;
-    safeWriteFile(path.join(targetDir, 'src', 'index.ts'), srcIndex, { dryRun, silent });
+    const srcIndex = `export async function run(args: string[] = []): Promise<void> {\n  console.log(${JSON.stringify(projectName + ' ready. Args:')}, args);\n}\n`;
+    const createdSource = safeWriteFile(path.join(targetDir, 'src', 'index.ts'), srcIndex, {
+      dryRun,
+      silent
+    });
 
     // 6. Unit test
     const unitTest = `import { describe, it, expect } from 'vitest';
 import { run } from '../src/index.js';
 
 describe('run', () => {
-  it('is a callable async function', async () => {
-    expect(typeof run).toBe('function');
+  it('runs with the supplied arguments', async () => {
+    await expect(run(['--help'])).resolves.toBeUndefined();
   });
 });
 `;
-    safeWriteFile(path.join(targetDir, 'tests', 'index.test.ts'), unitTest, { dryRun, silent });
+    if (createdSource)
+      safeWriteFile(path.join(targetDir, 'tests', 'index.test.ts'), unitTest, { dryRun, silent });
+    else setupTesting(ctx);
 
     // 7. Docs ADR
     if (ctx.config.docs.adr) {

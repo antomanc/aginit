@@ -4,6 +4,7 @@ import { initCurrentDirectory } from './init.js';
 import { runDoctor } from './doctor.js';
 import { updateSkills } from '../adapters/skills.js';
 import { buildGraft } from '../adapters/graft.js';
+import { readProjectConfig } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
 import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
 import {
@@ -18,7 +19,9 @@ export function createCliProgram(): Command {
 
   program
     .name('aginit')
-    .description('Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex')
+    .description(
+      'Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex'
+    )
     .version('0.1.0');
 
   // Root action: interactive wizard when in TTY, else display help
@@ -37,7 +40,10 @@ export function createCliProgram(): Command {
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun', 'pnpm')
-    .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
+    .option(
+      '--spec-workflow',
+      'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)'
+    )
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -54,10 +60,22 @@ export function createCliProgram(): Command {
           program.error("error: missing required argument 'projectName'");
         }
         const answers = await promptNewProject({
-          preset: command.getOptionValueSource('preset') === 'cli' ? (options.preset as PresetType) : undefined,
-          framework: command.getOptionValueSource('framework') === 'cli' ? (options.framework as WebFramework) : undefined,
-          packageManager: command.getOptionValueSource('packageManager') === 'cli' ? (options.packageManager as PackageManager) : undefined,
-          specWorkflow: command.getOptionValueSource('specWorkflow') === 'cli' ? options.specWorkflow : undefined
+          preset:
+            command.getOptionValueSource('preset') === 'cli'
+              ? (options.preset as PresetType)
+              : undefined,
+          framework:
+            command.getOptionValueSource('framework') === 'cli'
+              ? (options.framework as WebFramework)
+              : undefined,
+          packageManager:
+            command.getOptionValueSource('packageManager') === 'cli'
+              ? (options.packageManager as PackageManager)
+              : undefined,
+          specWorkflow:
+            command.getOptionValueSource('specWorkflow') === 'cli'
+              ? options.specWorkflow
+              : undefined
         });
         finalName = answers.projectName;
         finalPreset = answers.preset;
@@ -66,7 +84,7 @@ export function createCliProgram(): Command {
         finalSpecWorkflow = answers.specWorkflow;
       }
 
-      await createProject(finalName, {
+      const complete = await createProject(finalName, {
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
@@ -76,16 +94,20 @@ export function createCliProgram(): Command {
         git: options.git,
         dryRun: options.dryRun
       });
+      if (!complete && !options.dryRun) process.exitCode = 1;
     });
 
   // Command: init
   program
     .command('init')
     .description('Initialize or update AI-first capabilities in the current directory')
-    .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
-    .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
+    .option('-p, --preset <preset>', 'Project preset: web | cli | generic')
+    .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun')
-    .option('--spec-workflow', 'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)')
+    .option(
+      '--spec-workflow',
+      'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)'
+    )
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -101,7 +123,8 @@ export function createCliProgram(): Command {
       const isPmExplicit = command.getOptionValueSource('packageManager') === 'cli';
       const isSpecExplicit = command.getOptionValueSource('specWorkflow') === 'cli';
 
-      if (isInteractive() && !isPresetExplicit && !options.dryRun) {
+      const savedConfig = readProjectConfig(process.cwd());
+      if (isInteractive() && !isPresetExplicit && !options.dryRun && !savedConfig) {
         const answers = await promptInitProject({
           preset: isPresetExplicit ? (options.preset as PresetType) : undefined,
           framework: isFrameworkExplicit ? (options.framework as WebFramework) : undefined,
@@ -114,7 +137,7 @@ export function createCliProgram(): Command {
         finalSpecWorkflow = answers.specWorkflow;
       }
 
-      await initCurrentDirectory({
+      const complete = await initCurrentDirectory({
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
@@ -124,6 +147,7 @@ export function createCliProgram(): Command {
         git: options.git,
         dryRun: options.dryRun
       });
+      if (!complete && !options.dryRun) process.exitCode = 1;
     });
 
   // Command: doctor
@@ -143,9 +167,24 @@ export function createCliProgram(): Command {
     .action(async (options: any) => {
       logger.banner('Aginit — Update');
       const targetDir = process.cwd();
-      await updateSkills(targetDir, { dryRun: options.dryRun });
-      await buildGraft(targetDir, { dryRun: options.dryRun });
-      logger.success('Update finished.');
+      const config = readProjectConfig(targetDir);
+      const skillsOk =
+        config?.skills.sources.length === 0
+          ? true
+          : await updateSkills(targetDir, { dryRun: options.dryRun });
+      const graftOk =
+        config?.codebase.graft === false
+          ? true
+          : await buildGraft(targetDir, { dryRun: options.dryRun });
+      if (skillsOk && graftOk) logger.success('Update finished.');
+      else {
+        if (!skillsOk) logger.warn('Skills update failed. Check connectivity and the skills CLI.');
+        if (!graftOk)
+          logger.warn(
+            'Graft refresh failed or Graft is unavailable. Check installation and rerun graft build.'
+          );
+        process.exitCode = 1;
+      }
     });
 
   return program;
