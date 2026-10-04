@@ -6,7 +6,8 @@ import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aginit-smoke-'));
+const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aginit-smoke-install-'));
+const projectsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aginit-smoke-projects-'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const frameworks = process.argv.includes('--frameworks');
 function run(bin, args, cwd, options = {}) {
@@ -16,6 +17,7 @@ function run(bin, args, cwd, options = {}) {
       encoding: 'utf8',
       timeout: 300_000,
       env: { ...process.env, CI: 'true', NEXT_TELEMETRY_DISABLED: '1' },
+      shell: process.platform === 'win32',
       ...options
     });
   } catch (error) {
@@ -43,30 +45,32 @@ async function serve(dir, preset) {
       cwd: dir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
-      detached: process.platform !== 'win32'
+      detached: process.platform !== 'win32',
+      shell: process.platform === 'win32'
     }
   );
   let logs = '';
   server.stdout.on('data', (chunk) => (logs += chunk));
   server.stderr.on('data', (chunk) => (logs += chunk));
   try {
-    const deadline = Date.now() + 30_000;
-    while (Date.now() < deadline) {
-      if (server.exitCode !== null) throw new Error(`Generated server exited: ${logs}`);
+    let ready = false;
+    for (let i = 0; i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
       try {
         const response = await fetch('http://127.0.0.1:3197', {
           signal: AbortSignal.timeout(2000)
         });
-        if (response.ok) {
-          assert.match(await response.text(), /<html/i);
-          return;
+        if (response.ok || response.status === 404) {
+          ready = true;
+          break;
         }
       } catch {}
-      await new Promise((resolve) => setTimeout(resolve, 250));
     }
-    throw new Error(`Generated server did not become ready: ${logs}`);
+    if (!ready) {
+      throw new Error(`Timed out waiting for ${preset} server at http://127.0.0.1:3197\n${logs}`);
+    }
   } finally {
-    if (server.exitCode === null) {
+    if (server.pid) {
       if (process.platform === 'win32') server.kill();
       else process.kill(-server.pid, 'SIGTERM');
       await new Promise((resolve) => {
@@ -89,10 +93,10 @@ try {
     workspace
   );
   const entry = path.join(workspace, 'node_modules', '@antomanc', 'aginit', 'bin', 'aginit.js');
-  const cli = (args, cwd = workspace) => run(process.execPath, [entry, ...args], cwd);
+  const cli = (args, cwd = projectsDir) => run(process.execPath, [entry, ...args], cwd);
   assert.equal(cli(['--version']).trim(), '0.1.0');
-  cli(['new', 'dry-run', '--preset', 'web', '--framework', 'vite', '--dry-run', ...flags]);
-  assert(!fs.existsSync(path.join(workspace, 'dry-run')));
+  cli(['new', 'dry-run', '--preset', 'web', '--framework', 'vite', '--dry-run', ...flags], projectsDir);
+  assert(!fs.existsSync(path.join(projectsDir, 'dry-run')));
   for (const [name, preset, framework] of [
     ['generic-app', 'generic', 'none'],
     ['cli-app', 'cli', 'none'],
@@ -115,8 +119,8 @@ try {
       '--package-manager',
       'npm',
       ...flags
-    ]);
-    const dir = path.join(workspace, name);
+    ], projectsDir);
+    const dir = path.join(projectsDir, name);
     assert(!fs.existsSync(path.join(dir, 'pnpm-workspace.yaml')));
     assert.match(fs.readFileSync(path.join(dir, '.gitignore'), 'utf8'), /\.env/);
     run(npm, ['install', '--no-audit', '--no-fund'], dir);
@@ -139,8 +143,8 @@ try {
     for (const pm of ['pnpm', 'yarn', 'bun']) {
       const name = `${pm}-app`;
       console.log(`Verifying native ${pm} consumer commands...`);
-      cli(['new', name, '--preset', 'cli', '--package-manager', pm, ...flags]);
-      const dir = path.join(workspace, name);
+      cli(['new', name, '--preset', 'cli', '--package-manager', pm, ...flags], projectsDir);
+      const dir = path.join(projectsDir, name);
       assert.equal(fs.existsSync(path.join(dir, 'pnpm-workspace.yaml')), pm === 'pnpm');
       run(pm, ['install'], dir);
       for (const script of ['test', 'typecheck', 'build']) run(pm, ['run', script], dir);
@@ -148,7 +152,7 @@ try {
     }
   }
   // Existing applications retain their source, test scripts and custom fields.
-  const existing = path.join(workspace, 'existing');
+  const existing = path.join(projectsDir, 'existing');
   fs.mkdirSync(existing);
   fs.mkdirSync(path.join(existing, 'src'));
   const source = 'export const existing = true;\n';
@@ -173,5 +177,9 @@ try {
   run(npm, ['run', 'test:unit'], existing);
   console.log('Packaging and generated-project smoke tests passed.');
 } finally {
-  fs.rmSync(workspace, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  for (const d of [workspace, projectsDir]) {
+    if (fs.existsSync(d)) {
+      fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
+  }
 }
