@@ -311,3 +311,35 @@ it('uses Next type generation before a fresh app typecheck', async () => {
   await createProject('app', { ...options, targetDir: dir, preset: 'web', framework: 'next' });
   expect(read('package.json').scripts.typecheck).toBe('next typegen && tsc --noEmit');
 });
+
+it('diagnoses unsupported Node versions below required engine in doctor', async () => {
+  shell.runExecutable.mockImplementation(async (bin, args) => {
+    if (bin === 'node' && args.includes('-v')) {
+      return { ok: true, exitCode: 0, stdout: 'v20.18.0', stderr: '' };
+    }
+    return success;
+  });
+  await runDoctor(dir);
+  const output = log.mock.calls.flat().join('\n');
+  expect(output).toContain('requires Node.js >= 22.12.0');
+});
+
+it('defaults scoped project names to package basename directory while keeping scoped manifest', async () => {
+  process.chdir(dir);
+  await createProject('@scope/scoped-app', { ...options });
+  const expectedDir = path.join(dir, 'scoped-app');
+  expect(fs.existsSync(expectedDir)).toBe(true);
+  const pkg = JSON.parse(fs.readFileSync(path.join(expectedDir, 'package.json'), 'utf8'));
+  expect(pkg.name).toBe('@scope/scoped-app');
+  const config = JSON.parse(fs.readFileSync(path.join(expectedDir, 'aginit.config.json'), 'utf8'));
+  expect(config.name).toBe('@scope/scoped-app');
+});
+
+it('sanitizes non-compliant directory names when running init without manifest', async () => {
+  const customSubDir = path.join(dir, 'My Uppercase App');
+  fs.mkdirSync(customSubDir);
+  process.chdir(customSubDir);
+  await initCurrentDirectory({ ...options });
+  const config = JSON.parse(fs.readFileSync(path.join(customSubDir, 'aginit.config.json'), 'utf8'));
+  expect(config.name).toBe('my-uppercase-app');
+});

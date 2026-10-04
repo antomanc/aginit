@@ -43,16 +43,30 @@ export async function setupGit(
   const gitDir = path.join(targetDir, '.git');
   const gitignorePath = path.join(targetDir, '.gitignore');
 
-  if (!fileExists(gitDir)) {
+  let gitOk = true;
+
+  // Check if directory is already a git repo or inside an existing git work tree (e.g. monorepo package)
+  let isRepo = fileExists(gitDir);
+  if (!isRepo && !dryRun) {
+    const check = await runExecutable('git', ['rev-parse', '--is-inside-work-tree'], {
+      cwd: targetDir,
+      silent: true
+    });
+    if (check.ok && check.stdout === 'true') {
+      isRepo = true;
+    }
+  }
+
+  if (!isRepo) {
     if (!silent) logger.dim('Initializing git repository...');
     const res = await runExecutable('git', ['init'], { cwd: targetDir, dryRun, silent: true });
     if (!res.ok) {
       logger.warn(`Failed to initialize git repository: ${res.stderr}`);
-      return false;
+      gitOk = false;
     }
   }
 
-  // Ensure .gitignore exists or append essential rules
+  // Ensure .gitignore exists or append essential rules regardless of git init status
   if (!fileExists(gitignorePath)) {
     safeWriteFile(gitignorePath, DEFAULT_GITIGNORE, { dryRun, silent });
   } else {
@@ -82,5 +96,5 @@ export async function setupGit(
     }
   }
 
-  return true;
+  return gitOk;
 }

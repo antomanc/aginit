@@ -49,13 +49,30 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
 
   // 1. Node.js check
   const nodeRes = await runExecutable('node', ['-v'], { silent: true });
+  let nodeOk = nodeRes.ok;
+  let nodeDetail = 'Node.js is not found in PATH';
+  let nodeSuggestion: string | undefined =
+    'Install Node.js (>= 22.12.0 LTS recommended) via nvm, fnm, or brew';
+  if (nodeRes.ok) {
+    const rawVer = nodeRes.stdout.replace(/^v/, '');
+    const [major = 0, minor = 0] = rawVer.split('.').map(Number);
+    const meetsEngine = major > 22 || (major === 22 && minor >= 12);
+    if (meetsEngine) {
+      nodeDetail = `Installed (${nodeRes.stdout})`;
+      nodeSuggestion = undefined;
+    } else {
+      nodeOk = false;
+      nodeDetail = `Installed (${nodeRes.stdout}) — requires Node.js >= 22.12.0`;
+      nodeSuggestion = 'Upgrade Node.js to >= 22.12.0 (LTS) via nvm, fnm, or brew';
+    }
+  }
   checks.push({
     name: 'Node.js runtime',
     category: 'Environment',
-    ok: nodeRes.ok,
+    ok: nodeOk,
     version: nodeRes.stdout,
-    detail: nodeRes.ok ? `Installed (${nodeRes.stdout})` : 'Node.js is not found in PATH',
-    suggestion: nodeRes.ok ? undefined : 'Install Node.js (>= 20 recommended) via nvm or brew'
+    detail: nodeDetail,
+    suggestion: nodeSuggestion
   });
 
   // 2. Active Package Manager check (pnpm, npm, yarn, or bun)
@@ -73,14 +90,27 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
 
   // 3. Git check
   const gitExists = await commandExists('git');
-  const isGitRepo = fileExists(path.join(targetDir, '.git'));
+  let isGitRepo = fileExists(path.join(targetDir, '.git'));
+  let inWorkTree = false;
+  if (gitExists && !isGitRepo) {
+    const revParse = await runExecutable('git', ['rev-parse', '--is-inside-work-tree'], {
+      cwd: targetDir,
+      silent: true
+    });
+    if (revParse.ok && revParse.stdout === 'true') {
+      isGitRepo = true;
+      inWorkTree = true;
+    }
+  }
   checks.push({
     name: 'Git VCS',
     category: 'Environment',
     ok: gitExists && isGitRepo,
     detail: gitExists
       ? isGitRepo
-        ? 'Git installed and repository initialized'
+        ? inWorkTree
+          ? 'Git installed and target directory is within an active git repository'
+          : 'Git installed and repository initialized'
         : 'Git installed, but target directory is not a git repo'
       : 'Git is not installed',
     suggestion: !gitExists

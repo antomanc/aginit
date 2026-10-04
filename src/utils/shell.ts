@@ -1,7 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import path from 'node:path';
+import fs from 'node:fs';
 import { logger } from './logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -32,8 +32,9 @@ function resolveExecutable(binName: string): { executable: string; isBatch: bool
   const pathExts = (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean);
   const dirs = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
   for (const dir of dirs) {
+    const cleanDir = dir.replace(/^"|"$/g, '');
     for (const ext of pathExts) {
-      const candidate = path.join(dir, `${binName}${ext}`);
+      const candidate = path.join(cleanDir, `${binName}${ext}`);
       try {
         if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
           return { executable: candidate, isBatch: isBatch(candidate) };
@@ -97,10 +98,11 @@ export async function commandExists(binName: string): Promise<boolean> {
 
   return (process.env.PATH || '').split(path.delimiter).some((dir) => {
     if (!dir) return false;
+    const cleanDir = dir.replace(/^"|"$/g, '');
     for (const ext of pathExts) {
       try {
         const file = path.join(
-          dir,
+          cleanDir,
           isWindows && !path.extname(binName) ? `${binName}${ext}` : binName
         );
         fs.accessSync(file, isWindows ? fs.constants.F_OK : fs.constants.X_OK);

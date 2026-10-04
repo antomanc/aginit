@@ -2,6 +2,7 @@
   "schemaVersion": "1.0.0",
   "name": "aginit",
   "preset": "cli",
+  "packageManager": "pnpm",
   "agents": {
     "primary": "antigravity",
     "secondary": "codex"
