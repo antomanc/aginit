@@ -233,6 +233,13 @@ Each upstream tool is governed by its own independent license. Aginit does not v
 
 ---
 
+## Contributing & Security
+
+- **Contributing**: Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on development and submitting pull requests.
+- **Security**: See [SECURITY.md](SECURITY.md) for our vulnerability reporting policy.
+
+---
+
 ## License
 
 [MIT](LICENSE) © 2026 Antonio Mancuso

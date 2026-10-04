@@ -173,5 +173,5 @@ try {
   run(npm, ['run', 'test:unit'], existing);
   console.log('Packaging and generated-project smoke tests passed.');
 } finally {
-  fs.rmSync(workspace, { recursive: true, force: true });
+  fs.rmSync(workspace, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }

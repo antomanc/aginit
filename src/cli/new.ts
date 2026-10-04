@@ -51,7 +51,11 @@ export async function createProject(
     !SUPPORTED_PACKAGE_MANAGERS.includes(options.packageManager)
   )
     throw new Error('Invalid package manager.');
-  const targetDir = path.resolve(options.targetDir || path.join(process.cwd(), projectName));
+  const defaultDir =
+    projectName.startsWith('@') && projectName.includes('/')
+      ? projectName.split('/').pop()!
+      : projectName;
+  const targetDir = path.resolve(options.targetDir || path.join(process.cwd(), defaultDir));
   const existingConfig = readProjectConfig(targetDir);
   const manifest = readPackageManifest(targetDir); // Validate before creating or modifying anything.
   const presetName = options.preset ?? existingConfig?.preset ?? 'generic';
