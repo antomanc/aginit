@@ -35,6 +35,12 @@ export function generateAgentsMarkdown(
   const engineering = selectedSkills.filter((skill) =>
     ['tdd', 'code-review', 'diagnosing-bugs'].includes(skill)
   );
+  let proseCapability = '';
+  if (selectedSkills.includes('humanizer')) {
+    proseCapability =
+      '- **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.';
+  }
+
   let uiCapability = '';
   if (isWeb && selectedSkills.includes('impeccable')) {
     uiCapability =
@@ -84,6 +90,7 @@ export function generateAgentsMarkdown(
     engineering.length
       ? `- **Engineering**: ${engineering.map((skill) => '\`' + skill + '\`').join(', ')}`
       : '',
+    proseCapability,
     specWorkflow,
     uiCapability,
     browserCapability,

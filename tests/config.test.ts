@@ -22,6 +22,7 @@ describe('Configuration & Defaults', () => {
     expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
 
     const packages = config.skills.sources.map((s) => s.package);
+    expect(packages).toContain('blader/humanizer');
     expect(packages).toContain('pbakaus/impeccable');
     expect(packages).toContain('vercel-labs/agent-browser');
   });
@@ -67,6 +68,7 @@ describe('Configuration & Defaults', () => {
 
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
     expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
+    expect(config.skills.sources.map((s) => s.package)).toContain('blader/humanizer');
     expect(config.skills.sources.map((s) => s.package)).not.toContain('pbakaus/impeccable');
   });
 
@@ -78,5 +80,6 @@ describe('Configuration & Defaults', () => {
     expect(config.packageManager).toBe('pnpm');
     expect(config.browser.visualAgent).toBe(false);
     expect(config.skills.sources.length).toBeGreaterThan(0);
+    expect(config.skills.sources.map((s) => s.package)).toContain('blader/humanizer');
   });
 });

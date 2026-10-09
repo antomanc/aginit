@@ -15,10 +15,18 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('## Essential Commands');
     expect(md).toContain('Package Manager: `pnpm`');
     expect(md).toContain('pnpm test:e2e');
+    expect(md).toContain('humanizer');
     expect(md).toContain('impeccable');
     expect(md).toContain('agent-browser');
     expect(md).toContain('## Bootstrap & First Session');
     expect(md).toContain('bootstrap this project');
+  });
+
+  it('includes humanizer prose guidance when humanizer skill is configured', () => {
+    const config = getDefaultConfig('demo-generic', 'generic');
+    const md = generateAgentsMarkdown(config);
+    expect(md).toContain('humanizer');
+    expect(md).toContain('Prose & Copy');
   });
 
   it('reflects selected package manager in Essential Commands', () => {

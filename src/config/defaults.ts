@@ -40,6 +40,10 @@ export function getDefaultConfig(
               skills: mattSkills
             },
             {
+              package: 'blader/humanizer',
+              skills: ['humanizer']
+            },
+            {
               package: 'pbakaus/impeccable',
               skills: ['impeccable']
             },
@@ -81,6 +85,10 @@ export function getDefaultConfig(
             {
               package: 'mattpocock/skills',
               skills: mattSkills
+            },
+            {
+              package: 'blader/humanizer',
+              skills: ['humanizer']
             }
           ]
         },
@@ -116,6 +124,10 @@ export function getDefaultConfig(
             {
               package: 'mattpocock/skills',
               skills: mattSkills
+            },
+            {
+              package: 'blader/humanizer',
+              skills: ['humanizer']
             }
           ]
         },

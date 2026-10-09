@@ -19,6 +19,11 @@ Each integrated upstream tool is governed by its respective authors and licenses
   - Author: Matt Pocock
   - Repository: https://github.com/mattpocock/skills
 
+- **Humanizer**
+  - Project: Agent skill that removes signs of AI-generated writing from text
+  - Author: Blake Robbins / Humanizer contributors
+  - Repository: https://github.com/blader/humanizer
+
 - **Impeccable**
   - Project: Frontend craft & design system review skill
   - Author: Peter Bak-Hansen
