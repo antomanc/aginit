@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultConfig } from '../src/config/defaults.js';
+import {
+  getDefaultConfig,
+  upgradeLegacySkillConfig,
+  MATT_POCOCK_SKILLS
+} from '../src/config/defaults.js';
 
 describe('Configuration & Defaults', () => {
-  it('generates correct config for web preset with simplified Matt skills and schemaVersion', () => {
+  it('generates correct config for web preset with the full stable Matt skill set and schemaVersion', () => {
     const config = getDefaultConfig('my-web-app', 'web');
     expect(config.schemaVersion).toBe('1.0.0');
     expect(config.name).toBe('my-web-app');
@@ -18,8 +22,9 @@ describe('Configuration & Defaults', () => {
 
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
     expect(mattSource).toBeDefined();
-    // Default Matt skills must only contain the universally useful trio
-    expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
+    // The whole stable Matt Pocock set is installed as standard
+    expect(mattSource?.skills).toEqual([...MATT_POCOCK_SKILLS]);
+    expect(mattSource?.skills).toHaveLength(27);
 
     const packages = config.skills.sources.map((s) => s.package);
     expect(packages).toContain('blader/humanizer');
@@ -38,13 +43,35 @@ describe('Configuration & Defaults', () => {
     expect(configBun.packageManager).toBe('bun');
   });
 
-  it('supports optional specWorkflow in config', () => {
-    const config = getDefaultConfig('my-spec-app', 'web', { specWorkflow: true });
-    expect(config.skills.workflow).toBe('spec');
+  it('installs every standard skill without a workflow selector', () => {
+    const config = getDefaultConfig('my-spec-app', 'web');
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
     expect(mattSource?.skills).toContain('to-spec');
     expect(mattSource?.skills).toContain('to-tickets');
     expect(mattSource?.skills).toContain('implement-spec');
+    // Upstream skills outside the stable categories stay out of the standard set
+    expect(mattSource?.skills).not.toContain('chief-of-staff'); // in-progress
+    expect(mattSource?.skills).not.toContain('setup-pre-commit'); // misc
+    expect(config.skills.workflow).toBeUndefined();
+  });
+
+  it('upgrades saved legacy skill selections to the current standard', () => {
+    const legacy = {
+      workflow: 'minimal' as const,
+      sources: [
+        { package: 'mattpocock/skills', skills: ['tdd', 'code-review', 'diagnosing-bugs'] },
+        { package: 'blader/humanizer', skills: ['humanizer'] }
+      ]
+    };
+    const upgraded = upgradeLegacySkillConfig(legacy);
+    expect(upgraded.workflow).toBeUndefined();
+    expect(upgraded.sources[0].skills).toEqual([...MATT_POCOCK_SKILLS]);
+    expect(upgraded.sources[1]).toBe(legacy.sources[1]);
+  });
+
+  it('preserves skill selections that were narrowed by hand', () => {
+    const custom = { sources: [{ package: 'mattpocock/skills', skills: ['tdd'] }] };
+    expect(upgradeLegacySkillConfig(custom)).toBe(custom);
   });
 
   it('supports custom web framework choice and enables playwright when web target exists', () => {
@@ -67,7 +94,7 @@ describe('Configuration & Defaults', () => {
     expect(config.codebase.graft).toBe(true);
 
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
-    expect(mattSource?.skills).toEqual(['tdd', 'code-review', 'diagnosing-bugs']);
+    expect(mattSource?.skills).toEqual([...MATT_POCOCK_SKILLS]);
     expect(config.skills.sources.map((s) => s.package)).toContain('blader/humanizer');
     expect(config.skills.sources.map((s) => s.package)).not.toContain('pbakaus/impeccable');
   });

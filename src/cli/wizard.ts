@@ -23,14 +23,12 @@ export interface WizardNewAnswers {
   preset: PresetType;
   framework: WebFramework;
   packageManager: PackageManager;
-  specWorkflow: boolean;
 }
 
 export interface WizardInitAnswers {
   preset: PresetType;
   framework: WebFramework;
   packageManager: PackageManager;
-  specWorkflow: boolean;
 }
 
 export async function promptNewProject(defaults?: {
@@ -38,7 +36,6 @@ export async function promptNewProject(defaults?: {
   preset?: PresetType;
   framework?: WebFramework;
   packageManager?: PackageManager;
-  specWorkflow?: boolean;
 }): Promise<WizardNewAnswers> {
   let projectName: string = defaults?.projectName || '';
   if (!projectName) {
@@ -101,28 +98,6 @@ export async function promptNewProject(defaults?: {
     framework = assertNotCancelled(res) as WebFramework;
   }
 
-  let specWorkflow = defaults?.specWorkflow;
-  if (specWorkflow === undefined) {
-    const res = await p.select({
-      message: 'Select AI engineering workflow:',
-      initialValue: 'minimal',
-      options: [
-        {
-          value: 'minimal',
-          label: 'Standard Workflow (Recommended)',
-          hint: 'TDD, Code Review, Diagnosing Bugs'
-        },
-        {
-          value: 'spec',
-          label: 'Spec & Tickets Workflow',
-          hint: 'Adds to-spec, to-tickets, implement-spec'
-        }
-      ]
-    });
-    const selected = assertNotCancelled(res);
-    specWorkflow = selected === 'spec';
-  }
-
   let packageManager = defaults?.packageManager;
   if (!packageManager) {
     const res = await p.select({
@@ -146,8 +121,7 @@ export async function promptNewProject(defaults?: {
     projectName,
     preset,
     framework,
-    packageManager,
-    specWorkflow
+    packageManager
   };
 }
 
@@ -156,7 +130,6 @@ export async function promptInitProject(defaults?: {
   preset?: PresetType;
   framework?: WebFramework;
   packageManager?: PackageManager;
-  specWorkflow?: boolean;
 }): Promise<WizardInitAnswers> {
   const targetDir = defaults?.targetDir || process.cwd();
 
@@ -197,28 +170,6 @@ export async function promptInitProject(defaults?: {
     framework = assertNotCancelled(res) as WebFramework;
   }
 
-  let specWorkflow = defaults?.specWorkflow;
-  if (specWorkflow === undefined) {
-    const res = await p.select({
-      message: 'Select AI engineering workflow:',
-      initialValue: 'minimal',
-      options: [
-        {
-          value: 'minimal',
-          label: 'Standard Workflow (Recommended)',
-          hint: 'TDD, Code Review, Diagnosing Bugs'
-        },
-        {
-          value: 'spec',
-          label: 'Spec & Tickets Workflow',
-          hint: 'Adds to-spec, to-tickets, implement-spec'
-        }
-      ]
-    });
-    const selected = assertNotCancelled(res);
-    specWorkflow = selected === 'spec';
-  }
-
   // Auto-detect and preserve existing package manager without prompting
   let packageManager = defaults?.packageManager;
   if (!packageManager) {
@@ -243,8 +194,7 @@ export async function promptInitProject(defaults?: {
   return {
     preset,
     framework,
-    packageManager,
-    specWorkflow
+    packageManager
   };
 }
 
@@ -277,8 +227,7 @@ export async function runInteractiveWizard(): Promise<void> {
     complete = await createProject(answers.projectName, {
       preset: answers.preset,
       framework: answers.framework,
-      packageManager: answers.packageManager,
-      specWorkflow: answers.specWorkflow
+      packageManager: answers.packageManager
     });
   } else {
     const saved = readProjectConfig(process.cwd());
@@ -291,8 +240,7 @@ export async function runInteractiveWizard(): Promise<void> {
       complete = await initCurrentDirectory({
         preset: answers.preset,
         framework: answers.framework,
-        packageManager: answers.packageManager,
-        specWorkflow: answers.specWorkflow
+        packageManager: answers.packageManager
       });
     }
   }

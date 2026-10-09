@@ -40,7 +40,7 @@ describe('Git Adapter', () => {
 
   it('still generates .gitignore even if git init fails', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-test-fail-'));
-    const spy = vi.spyOn(shell, 'runExecutable').mockImplementation(async (_cmd, args) => {
+    const spy = vi.spyOn(shell, 'runExecutable').mockImplementation(async (_cmd, args = []) => {
       if (args[0] === 'init') {
         return { ok: false, exitCode: 1, stdout: '', stderr: 'git init failed' };
       }
@@ -61,7 +61,7 @@ describe('Git Adapter', () => {
 
   it('detects when directory is already inside a git work tree and avoids nested git init', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-test-worktree-'));
-    const spy = vi.spyOn(shell, 'runExecutable').mockImplementation(async (_cmd, args) => {
+    const spy = vi.spyOn(shell, 'runExecutable').mockImplementation(async (_cmd, args = []) => {
       if (args.includes('--is-inside-work-tree')) {
         return { ok: true, exitCode: 0, stdout: 'true', stderr: '' };
       }

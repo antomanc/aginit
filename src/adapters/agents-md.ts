@@ -31,24 +31,45 @@ export function generateAgentsMarkdown(
     testE2E = `- Test (E2E / Browser): \`${pmAdapter.runCmd('test:e2e')}\``;
   }
 
-  const selectedSkills = config.skills.sources.flatMap((source) => source.skills);
-  const engineering = selectedSkills.filter((skill) =>
-    ['tdd', 'code-review', 'diagnosing-bugs'].includes(skill)
-  );
+  // A source with an empty skill list (or `*`) installs every skill it ships.
+  const skillInstalled = (skill: string) =>
+    config.skills.sources.some(
+      (source) =>
+        source.skills.length === 0 || source.skills.includes('*') || source.skills.includes(skill)
+    );
+  const mattSkills = (() => {
+    const source = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
+    if (!source) return [];
+    return source.skills.length ? source.skills : ['*'];
+  })();
+  const hasSkills = config.skills.sources.length > 0;
+
+  const specSkillNames = ['to-spec', 'to-tickets', 'implement-spec'];
+  let engineeringCapability = '';
+  if (mattSkills.includes('*')) {
+    engineeringCapability =
+      '- **Engineering**: the full Matt Pocock skill set installed in `.agents/skills/` — start with `ask-matt` to route to the right one.';
+  } else if (mattSkills.length) {
+    const engineering = mattSkills.filter((skill) => !specSkillNames.includes(skill));
+    if (engineering.length) {
+      engineeringCapability = `- **Engineering**: ${engineering.map((skill) => '`' + skill + '`').join(', ')}`;
+    }
+  }
+
   let proseCapability = '';
-  if (selectedSkills.includes('humanizer')) {
+  if (skillInstalled('humanizer')) {
     proseCapability =
       '- **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.';
   }
 
   let uiCapability = '';
-  if (isWeb && selectedSkills.includes('impeccable')) {
+  if (isWeb && skillInstalled('impeccable')) {
     uiCapability =
       '- **UI & Design**: Use `impeccable` skill for frontend polish, design critique, and token craft.';
   }
 
   let browserCapability = '';
-  if (hasVisualAgent && selectedSkills.includes('agent-browser')) {
+  if (hasVisualAgent && skillInstalled('agent-browser')) {
     browserCapability =
       '- **Browser Verification**: Use `agent-browser` skill for interactive inspection and visual QA.';
   }
@@ -59,12 +80,11 @@ export function generateAgentsMarkdown(
       '- **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.';
   }
 
-  let specWorkflow = '';
-  if (config.skills.workflow === 'spec' && selectedSkills.includes('to-spec')) {
-    specWorkflow = '- **Spec & Tickets Workflow**: `to-spec`, `to-tickets`, `implement-spec`';
-  }
+  const specCapability = skillInstalled('to-spec')
+    ? '- **Spec & Tickets Workflow**: `to-spec`, `to-tickets`, `implement-spec`'
+    : '';
 
-  const sections = [
+  const sections: Array<string | undefined> = [
     `# ${config.name}`,
     '',
     `AI-first ${config.preset} project configured with \`aginit\`.`,
@@ -76,25 +96,23 @@ export function generateAgentsMarkdown(
     '',
     '## Essential Commands',
     `- Package Manager: \`${pm}\``,
-    devCommand,
-    hasCommand('build') ? `- Build: \`${pmAdapter.runCmd('build')}\`` : '',
-    hasCommand('typecheck') ? `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\`` : '',
-    hasCommand('test') ? `- Test: \`${pmAdapter.runCmd('test')}\`` : '',
-    hasCommand('test:unit') ? `- Unit Test: \`${pmAdapter.runCmd('test:unit')}\`` : '',
-    testE2E,
+    devCommand || undefined,
+    hasCommand('build') ? `- Build: \`${pmAdapter.runCmd('build')}\`` : undefined,
+    hasCommand('typecheck') ? `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\`` : undefined,
+    hasCommand('test') ? `- Test: \`${pmAdapter.runCmd('test')}\`` : undefined,
+    hasCommand('test:unit') ? `- Unit Test: \`${pmAdapter.runCmd('test:unit')}\`` : undefined,
+    testE2E || undefined,
     '',
     '## AI Capabilities & Skills',
-    selectedSkills.length
+    hasSkills
       ? 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex):'
       : 'Skills installation is disabled in this configuration.',
-    engineering.length
-      ? `- **Engineering**: ${engineering.map((skill) => '\`' + skill + '\`').join(', ')}`
-      : '',
-    proseCapability,
-    specWorkflow,
-    uiCapability,
-    browserCapability,
-    graftCapability,
+    engineeringCapability || undefined,
+    proseCapability || undefined,
+    specCapability || undefined,
+    uiCapability || undefined,
+    browserCapability || undefined,
+    graftCapability || undefined,
     '',
     '## Bootstrap & First Session',
     'When the user asks to "bootstrap this project" or kicks off a new initiative:',
@@ -104,9 +122,11 @@ export function generateAgentsMarkdown(
     ''
   ];
 
+  // Conditional lines are `undefined` and dropped; `''` entries are the blank
+  // separators between sections and must survive.
   return (
     sections
-      .filter((s) => s !== '')
+      .filter((s): s is string => s !== undefined)
       .join('\n')
       .trim() + '\n'
   );

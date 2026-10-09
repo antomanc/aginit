@@ -18,6 +18,11 @@ export interface AginitConfig {
     secondary: string;
   };
   skills: {
+    /**
+     * @deprecated Legacy selector from when only a subset of skills was
+     * installed. All standard skills are installed now, so this field is no
+     * longer written. It is still accepted so existing configs keep loading.
+     */
     workflow?: 'minimal' | 'spec';
     sources: SkillSourceConfig[];
   };

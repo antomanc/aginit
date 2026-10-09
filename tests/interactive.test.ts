@@ -29,7 +29,6 @@ it('reports incomplete new setup from the root wizard', async () => {
   mocks.select
     .mockResolvedValueOnce('new')
     .mockResolvedValueOnce('generic')
-    .mockResolvedValueOnce('minimal')
     .mockResolvedValueOnce('npm');
   mocks.text.mockResolvedValue('app');
   mocks.create.mockResolvedValue(false);
