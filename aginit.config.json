@@ -13,6 +13,10 @@
       {
         "package": "mattpocock/skills",
         "skills": ["tdd", "code-review", "diagnosing-bugs"]
+      },
+      {
+        "package": "blader/humanizer",
+        "skills": ["humanizer"]
       }
     ]
   },

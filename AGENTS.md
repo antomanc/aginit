@@ -16,6 +16,7 @@ Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Cod
 ## AI Capabilities & Skills
 Installed skills live in `.agents/skills/` (shared by Antigravity and Codex):
 - **Engineering**: `tdd`, `code-review`, `diagnosing-bugs`
+- **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.
 - **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.
 
 ## Bootstrap & First Session

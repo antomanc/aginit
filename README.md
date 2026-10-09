@@ -66,7 +66,7 @@ The web preset supports `--framework none` (default), `vite`, `next`, or `existi
 ### Agent configuration
 
 - `AGENTS.md`: project instructions shared by agents.
-- `.agents/skills/`: `tdd`, `code-review`, and `diagnosing-bugs` from Matt Pocock. Web projects also include Impeccable and agent-browser.
+- `.agents/skills/`: `tdd`, `code-review`, and `diagnosing-bugs` from Matt Pocock, and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser.
 - Graft: a codebase graph for `graft map` and `graft ask`.
 - `aginit.config.json`: saved preset, framework, package manager, agents, and skill sources.
 
