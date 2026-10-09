@@ -380,8 +380,14 @@ it('does not report missing skills when installation is disabled in config', asy
 
 it('omits the cd step when the target is the current directory', async () => {
   process.chdir(dir);
-  await createProject('app', { ...options, targetDir: dir, silent: false });
-  const output = log.mock.calls.flat().join('\n');
+  // process.cwd() is canonical on every platform (macOS resolves /var to
+  // /private/var, so handing createProject the raw tmpdir path would not
+  // compare equal) and CI renders colors, so strip ANSI before matching.
+  await createProject('app', { ...options, targetDir: process.cwd(), silent: false });
+  const output = log.mock.calls
+    .flat()
+    .join('\n')
+    .replace(/\x1b\[[0-9;]*m/g, '');
   expect(output).toContain('is ready for development');
-  expect(output).not.toContain('cd .');
+  expect(output).not.toMatch(/\n\s+cd /);
 });
