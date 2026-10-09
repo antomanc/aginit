@@ -81,25 +81,28 @@ export async function installAllSkills(
 }
 
 export function getInstalledSkills(targetDir: string): string[] {
+  // The lockfile only records what the skills CLI installed through aginit;
+  // skills added by hand live on disk only, so report the union of both.
+  const installed = new Set<string>();
+
   const lockPath = path.join(targetDir, 'skills-lock.json');
   if (fileExists(lockPath)) {
     const lock = readJsonFile<SkillsLockFile>(lockPath);
-    if (lock && lock.skills) {
-      return Object.keys(lock.skills);
-    }
+    for (const name of Object.keys(lock?.skills ?? {})) installed.add(name);
   }
 
-  // Check .agents/skills directory directly
   const skillsDir = path.join(targetDir, '.agents', 'skills');
   if (fileExists(skillsDir)) {
     try {
-      return fs.readdirSync(skillsDir).filter((f) => !f.startsWith('.'));
+      for (const entry of fs.readdirSync(skillsDir)) {
+        if (!entry.startsWith('.')) installed.add(entry);
+      }
     } catch {
-      return [];
+      // Unreadable directory: keep whatever the lockfile reported.
     }
   }
 
-  return [];
+  return [...installed];
 }
 
 export async function updateSkills(

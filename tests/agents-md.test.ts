@@ -72,4 +72,25 @@ describe('AGENTS.md generation & safety', () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('separates sections with blank lines while dropping inapplicable lines', () => {
+    const config = getDefaultConfig('demo-cli', 'cli');
+    const md = generateAgentsMarkdown(config);
+
+    expect(md).toContain('# demo-cli\n\nAI-first cli project configured');
+    expect(md).toContain('## Core Invariants\n- Keep changes small');
+    expect(md).toContain('\n\n## Essential Commands');
+    expect(md).toContain('\n\n## AI Capabilities & Skills');
+    expect(md).toContain('\n\n## Bootstrap & First Session');
+    expect(md).not.toContain('\n\n\n');
+    expect(md.endsWith('\n')).toBe(true);
+  });
+
+  it('reports skills as disabled only when no source is configured', () => {
+    const config = getDefaultConfig('demo-off', 'generic');
+    config.skills.sources = [];
+    const md = generateAgentsMarkdown(config);
+    expect(md).toContain('Skills installation is disabled');
+    expect(md).not.toContain('**Engineering**');
+  });
 });

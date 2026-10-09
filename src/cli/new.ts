@@ -1,6 +1,6 @@
 import path from 'node:path';
 import pc from 'picocolors';
-import { getDefaultConfig } from '../config/defaults.js';
+import { getDefaultConfig, upgradeLegacySkillConfig } from '../config/defaults.js';
 import {
   AGINIT_CONFIG_FILENAME,
   PresetType,
@@ -28,7 +28,6 @@ export interface NewProjectOptions {
   preset?: PresetType;
   framework?: WebFramework;
   packageManager?: PackageManager;
-  specWorkflow?: boolean;
   skills?: boolean;
   graft?: boolean;
   git?: boolean;
@@ -73,8 +72,7 @@ export async function createProject(
   const presetHandler = getPreset(presetName);
   const defaults = getDefaultConfig(projectName, presetName, {
     framework,
-    packageManager,
-    specWorkflow: options.specWorkflow
+    packageManager
   });
   const config = validateConfig(
     existingConfig
@@ -88,22 +86,7 @@ export async function createProject(
             options.framework !== undefined || options.preset !== undefined
               ? { ...existingConfig.browser, ...defaults.browser }
               : existingConfig.browser,
-          skills:
-            options.specWorkflow !== undefined
-              ? {
-                  ...existingConfig.skills,
-                  workflow: defaults.skills.workflow,
-                  sources: existingConfig.skills.sources.map((source) =>
-                    source.package === 'mattpocock/skills'
-                      ? {
-                          ...source,
-                          skills: defaults.skills.sources.find((s) => s.package === source.package)!
-                            .skills
-                        }
-                      : source
-                  )
-                }
-              : existingConfig.skills
+          skills: upgradeLegacySkillConfig(existingConfig.skills)
         }
       : defaults
   );
@@ -189,9 +172,10 @@ export async function createProject(
       );
     console.log();
     console.log('Next steps:');
-    console.log(pc.cyan(`  cd ${path.relative(process.cwd(), targetDir) || '.'}`));
+    const relativeTarget = path.relative(process.cwd(), targetDir);
+    if (relativeTarget) console.log(pc.cyan(`  cd ${relativeTarget}`));
     console.log(pc.cyan(`  ${packageManager} install`));
-    console.log(pc.cyan('  Open the repository in T3 Code'));
+    console.log(pc.cyan('  Open the repository in your AI coding agent'));
     console.log(pc.dim('  Prompt the agent: ') + pc.bold(pc.green('"bootstrap this project"')));
     console.log();
   }

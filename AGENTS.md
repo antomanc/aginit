@@ -1,6 +1,6 @@
 # aginit
 
-Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex.
+Minimal, modular AI-first project bootstrapper for AI coding agents.
 
 ## Core Invariants
 - Orchestrate upstream tools; do not duplicate, vendor, or fork them.
@@ -15,7 +15,7 @@ Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Cod
 
 ## AI Capabilities & Skills
 Installed skills live in `.agents/skills/` (shared by Antigravity and Codex):
-- **Engineering**: `tdd`, `code-review`, `diagnosing-bugs`
+- **Engineering**: the full stable Matt Pocock skill set — 27 skills covering `tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`, `research`, `retro`, `triage`, and more (see `.agents/skills/`)
 - **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.
 - **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.
 
