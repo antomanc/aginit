@@ -33,28 +33,24 @@ describe('Wizard & Interactive Prompts', () => {
     const answers = await promptNewProject({
       projectName: 'custom-app',
       preset: 'cli',
-      packageManager: 'bun',
-      specWorkflow: false
+      packageManager: 'bun'
     });
 
     expect(answers.projectName).toBe('custom-app');
     expect(answers.preset).toBe('cli');
     expect(answers.framework).toBe('none');
     expect(answers.packageManager).toBe('bun');
-    expect(answers.specWorkflow).toBe(false);
   });
 
   it('uses provided defaults for init project', async () => {
     const answers = await promptInitProject({
       preset: 'generic',
-      packageManager: 'yarn',
-      specWorkflow: true
+      packageManager: 'yarn'
     });
 
     expect(answers.preset).toBe('generic');
     expect(answers.framework).toBe('existing');
     expect(answers.packageManager).toBe('yarn');
-    expect(answers.specWorkflow).toBe(true);
   });
 
   it('auto-detects and preserves existing package manager in init project without prompting', async () => {
@@ -63,8 +59,7 @@ describe('Wizard & Interactive Prompts', () => {
       fs.writeFileSync(path.join(tmpDir, 'yarn.lock'), '');
       const answers = await promptInitProject({
         targetDir: tmpDir,
-        preset: 'generic',
-        specWorkflow: false
+        preset: 'generic'
       });
 
       expect(answers.packageManager).toBe('yarn');

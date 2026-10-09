@@ -1,8 +1,8 @@
 # Aginit
 
-Project bootstrapper for T3 Code, Antigravity, and Codex. Configures agent instructions, skills, a codebase graph, and test tooling using upstream tools.
+Project bootstrapper for AI coding agents. Configures agent instructions, skills, a codebase graph, and test tooling using upstream tools.
 
-Beta · v0.1.0
+Beta
 
 [![CI](https://github.com/antomanc/aginit/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/aginit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -27,7 +27,7 @@ npm install -g @antomanc/aginit
 aginit
 ```
 
-The wizard lets you create a project or initialize an existing directory, then choose a preset, framework, workflow, and package manager. Existing projects retain their detected package manager.
+The wizard lets you create a project or initialize an existing directory, then choose a preset, framework, and package manager. Existing projects retain their detected package manager.
 
 Graft requires a separate installation. Use `--no-graft` to skip it.
 
@@ -66,17 +66,19 @@ The web preset supports `--framework none` (default), `vite`, `next`, or `existi
 ### Agent configuration
 
 - `AGENTS.md`: project instructions shared by agents.
-- `.agents/skills/`: `tdd`, `code-review`, and `diagnosing-bugs` from Matt Pocock, and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser.
+- `.agents/skills/`: the 27 stable skills from Matt Pocock (engineering + productivity), and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser.
 - Graft: a codebase graph for `graft map` and `graft ask`.
 - `aginit.config.json`: saved preset, framework, package manager, agents, and skill sources.
 
-Use `--spec-workflow` to add `to-spec`, `to-tickets`, and `implement-spec`. Use `--no-skills` to skip skill installation.
+The standard skill set includes the spec and tickets workflow (`to-spec`, `to-tickets`, `implement-spec`); there is no workflow selector to run. Skills from Matt Pocock's `misc` and `in-progress` buckets are left out. Use `--no-skills` to skip skill installation.
 
 ## Existing projects
 
 `aginit init` preserves application source, custom scripts, dependency versions, and existing test configurations. The web and CLI presets add missing test tooling; projects with a custom test runner receive a separate `test:unit` script.
 
 Repeated initialization preserves saved settings and extension fields. Explicit options override the corresponding settings. Invalid configuration is reported before files are changed. `--no-skills` skips installation while retaining saved skill sources.
+
+Configs written by older versions that still hold the retired default skill selection are upgraded to the current standard set, along with dropping the retired `skills.workflow` selector. A skill list narrowed by hand is preserved as written.
 
 ## Maintenance
 
@@ -101,7 +103,8 @@ aginit update
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm check                    # typecheck, tests, build, dependency audit
+pnpm check                    # typecheck (src + tests), tests, build, dependency audit
+pnpm check:skills             # compare the standard skill set with upstream (after pnpm build)
 pnpm smoke                    # verify projects generated from the packed tarball
 pnpm smoke --frameworks       # also scaffold, test, build, and serve Vite and Next.js
 pnpm smoke --package-managers # verify pnpm, Yarn, and Bun consumer commands
@@ -110,7 +113,7 @@ npm pack --dry-run
 
 Framework smoke tests download upstream tools and dependencies. `npm publish` runs `pnpm check` and the base consumer smoke test before publication.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [SECURITY.md](SECURITY.md) for vulnerability reporting.
+See [CHANGELOG.md](CHANGELOG.md) for release notes, [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## License
 

@@ -94,7 +94,8 @@ try {
   );
   const entry = path.join(workspace, 'node_modules', '@antomanc', 'aginit', 'bin', 'aginit.js');
   const cli = (args, cwd = projectsDir) => run(process.execPath, [entry, ...args], cwd);
-  assert.equal(cli(['--version']).trim(), '0.1.0');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(cli(['--version']).trim(), pkg.version);
   cli(['new', 'dry-run', '--preset', 'web', '--framework', 'vite', '--dry-run', ...flags], projectsDir);
   assert(!fs.existsSync(path.join(projectsDir, 'dry-run')));
   for (const [name, preset, framework] of [

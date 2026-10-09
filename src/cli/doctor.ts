@@ -198,18 +198,20 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
 
   // 9. Installed skills check
   const installedSkills = getInstalledSkills(targetDir);
+  const skillsDisabled = projectConfig !== null && projectConfig.skills.sources.length === 0;
   checks.push({
     name: 'Local Agent Skills (.agents/skills/)',
     category: 'Project Config',
-    ok: installedSkills.length > 0,
-    detail:
-      installedSkills.length > 0
+    ok: skillsDisabled || installedSkills.length > 0,
+    detail: skillsDisabled
+      ? 'Disabled in configuration (skills.sources is empty)'
+      : installedSkills.length > 0
         ? `${installedSkills.length} skills installed: ${installedSkills.join(', ')}`
         : 'No skills found in .agents/skills/',
     suggestion:
-      installedSkills.length === 0
-        ? 'Run `aginit init` or `npx skills add ...` to install skills'
-        : undefined
+      skillsDisabled || installedSkills.length > 0
+        ? undefined
+        : 'Run `aginit init` or `npx skills add ...` to install skills'
   });
 
   // Print grouped results

@@ -1,7 +1,7 @@
 {
   "name": "@antomanc/aginit",
-  "version": "0.1.0",
-  "description": "Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex",
+  "version": "0.2.0",
+  "description": "Minimal, modular AI-first project bootstrapper for AI coding agents",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,6 +19,7 @@
     "src",
     "bin",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
@@ -39,7 +40,6 @@
     "agents",
     "antigravity",
     "codex",
-    "t3-code",
     "skills",
     "graft",
     "bootstrap",
@@ -49,26 +49,27 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "prepack": "tsc",
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm audit",
+    "check:skills": "node scripts/check-skill-drift.mjs",
     "smoke": "node scripts/smoke-test.mjs",
     "prepublishOnly": "pnpm check && pnpm smoke"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
-    "commander": "^12.1.0",
+    "commander": "^15.0.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^22.8.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.6.3",
-    "vitest": "^4.1.11"
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   },
   "license": "MIT",
   "engines": {
     "node": ">=22.12.0"
   },
-  "packageManager": "pnpm@12.8.1"
+  "packageManager": "pnpm@12.10.1"
 }

@@ -6,7 +6,7 @@ import { createProject } from '../src/cli/new.js';
 import { initCurrentDirectory } from '../src/cli/init.js';
 import { createCliProgram } from '../src/cli/main.js';
 import { runDoctor } from '../src/cli/doctor.js';
-import { installSkillSource } from '../src/adapters/skills.js';
+import { installSkillSource, getInstalledSkills } from '../src/adapters/skills.js';
 import { setupGit } from '../src/adapters/git.js';
 import { getDefaultConfig } from '../src/config/defaults.js';
 
@@ -82,8 +82,7 @@ it('preserves saved config and extension fields through the actual init CLI', as
   const config = {
     ...getDefaultConfig('existing', 'web', {
       framework: 'vite',
-      packageManager: 'npm',
-      specWorkflow: true
+      packageManager: 'npm'
     }),
     extension: { custom: true }
   };
@@ -111,13 +110,14 @@ it('applies explicit init overrides without dropping extensions', async () => {
     JSON.stringify({ name: 'existing', type: 'module' })
   );
   process.chdir(dir);
-  await initCurrentDirectory({ ...options, packageManager: 'bun', specWorkflow: true });
-  expect(read('aginit.config.json')).toMatchObject({
+  await initCurrentDirectory({ ...options, packageManager: 'bun' });
+  const applied = read('aginit.config.json');
+  expect(applied).toMatchObject({
     preset: 'web',
     packageManager: 'bun',
-    extension: 42,
-    skills: { workflow: 'spec' }
+    extension: 42
   });
+  expect(applied.skills).toEqual(config.skills);
 });
 it('rejects invalid existing configuration before changing any files', async () => {
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), '{}');
@@ -342,4 +342,52 @@ it('sanitizes non-compliant directory names when running init without manifest',
   await initCurrentDirectory({ ...options });
   const config = JSON.parse(fs.readFileSync(path.join(customSubDir, 'aginit.config.json'), 'utf8'));
   expect(config.name).toBe('my-uppercase-app');
+});
+
+it('reports skills on disk alongside lockfile entries', () => {
+  fs.mkdirSync(path.join(dir, '.agents', 'skills', 'tdd'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'skills-lock.json'),
+    JSON.stringify({
+      version: 1,
+      skills: {
+        humanizer: {
+          source: 'blader/humanizer',
+          sourceType: 'github',
+          skillPath: 'SKILL.md',
+          computedHash: 'hash'
+        }
+      }
+    })
+  );
+  expect(getInstalledSkills(dir)).toEqual(expect.arrayContaining(['tdd', 'humanizer']));
+
+  // An empty lockfile must not hide skills that were installed by hand
+  fs.writeFileSync(path.join(dir, 'skills-lock.json'), JSON.stringify({ version: 1, skills: {} }));
+  expect(getInstalledSkills(dir)).toEqual(['tdd']);
+});
+
+it('does not report missing skills when installation is disabled in config', async () => {
+  const config = getDefaultConfig('app', 'generic');
+  config.skills.sources = [];
+  config.codebase.graft = false;
+  fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
+  await runDoctor(dir);
+  const output = log.mock.calls.flat().join('\n');
+  expect(output).toContain('Disabled in configuration');
+  expect(output).not.toContain('No skills found');
+});
+
+it('omits the cd step when the target is the current directory', async () => {
+  process.chdir(dir);
+  // process.cwd() is canonical on every platform (macOS resolves /var to
+  // /private/var, so handing createProject the raw tmpdir path would not
+  // compare equal) and CI renders colors, so strip ANSI before matching.
+  await createProject('app', { ...options, targetDir: process.cwd(), silent: false });
+  const output = log.mock.calls
+    .flat()
+    .join('\n')
+    .replace(/\x1b\[[0-9;]*m/g, '');
+  expect(output).toContain('is ready for development');
+  expect(output).not.toMatch(/\n\s+cd /);
 });

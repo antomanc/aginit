@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
 import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
 import { runDoctor } from './doctor.js';
@@ -14,15 +15,26 @@ import {
   runInteractiveWizard
 } from './wizard.js';
 
+/**
+ * Read the version from package.json so releases only bump one place.
+ * Resolves from `src/cli/main.ts` and from `dist/cli/main.js` alike.
+ */
+function readVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    return typeof pkg.version === 'string' ? pkg.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
 export function createCliProgram(): Command {
   const program = new Command();
 
   program
     .name('aginit')
-    .description(
-      'Minimal, modular AI-first project bootstrapper for T3 Code, Antigravity, and Codex'
-    )
-    .version('0.1.0');
+    .description('Minimal, modular AI-first project bootstrapper for AI coding agents')
+    .version(readVersion());
 
   // Root action: interactive wizard when in TTY, else display help
   program.action(async () => {
@@ -40,10 +52,6 @@ export function createCliProgram(): Command {
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic', 'generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun', 'pnpm')
-    .option(
-      '--spec-workflow',
-      'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)'
-    )
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -53,7 +61,6 @@ export function createCliProgram(): Command {
       let finalPreset = options.preset;
       let finalFramework = options.framework;
       let finalPackageManager = options.packageManager;
-      let finalSpecWorkflow = options.specWorkflow;
 
       if (!finalName) {
         if (!isInteractive()) {
@@ -71,24 +78,18 @@ export function createCliProgram(): Command {
           packageManager:
             command.getOptionValueSource('packageManager') === 'cli'
               ? (options.packageManager as PackageManager)
-              : undefined,
-          specWorkflow:
-            command.getOptionValueSource('specWorkflow') === 'cli'
-              ? options.specWorkflow
               : undefined
         });
         finalName = answers.projectName;
         finalPreset = answers.preset;
         finalFramework = answers.framework;
         finalPackageManager = answers.packageManager;
-        finalSpecWorkflow = answers.specWorkflow;
       }
 
       const complete = await createProject(finalName, {
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
-        specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,
@@ -104,10 +105,6 @@ export function createCliProgram(): Command {
     .option('-p, --preset <preset>', 'Project preset: web | cli | generic')
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun')
-    .option(
-      '--spec-workflow',
-      'Include full spec and tickets skills (to-spec, to-tickets, implement-spec)'
-    )
     .option('--no-skills', 'Skip installing AI skills')
     .option('--no-graft', 'Skip codebase graph (Graft) setup')
     .option('--no-git', 'Skip git repository initialization')
@@ -116,32 +113,27 @@ export function createCliProgram(): Command {
       let finalPreset = options.preset;
       let finalFramework = options.framework;
       let finalPackageManager = options.packageManager;
-      let finalSpecWorkflow = options.specWorkflow;
 
       const isPresetExplicit = command.getOptionValueSource('preset') === 'cli';
       const isFrameworkExplicit = command.getOptionValueSource('framework') === 'cli';
       const isPmExplicit = command.getOptionValueSource('packageManager') === 'cli';
-      const isSpecExplicit = command.getOptionValueSource('specWorkflow') === 'cli';
 
       const savedConfig = readProjectConfig(process.cwd());
       if (isInteractive() && !isPresetExplicit && !options.dryRun && !savedConfig) {
         const answers = await promptInitProject({
           preset: isPresetExplicit ? (options.preset as PresetType) : undefined,
           framework: isFrameworkExplicit ? (options.framework as WebFramework) : undefined,
-          packageManager: isPmExplicit ? (options.packageManager as PackageManager) : undefined,
-          specWorkflow: isSpecExplicit ? options.specWorkflow : undefined
+          packageManager: isPmExplicit ? (options.packageManager as PackageManager) : undefined
         });
         finalPreset = answers.preset;
         finalFramework = answers.framework;
         finalPackageManager = answers.packageManager;
-        finalSpecWorkflow = answers.specWorkflow;
       }
 
       const complete = await initCurrentDirectory({
         preset: finalPreset as PresetType,
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
-        specWorkflow: finalSpecWorkflow,
         skills: options.skills,
         graft: options.graft,
         git: options.git,
