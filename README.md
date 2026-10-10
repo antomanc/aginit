@@ -1,104 +1,128 @@
-# Aginit
+# aginit
 
-Project bootstrapper for AI coding agents. Configures agent instructions, skills, a codebase graph, and test tooling using upstream tools.
+**Set up a new or existing project for AI coding agents with one command.**
 
-Beta
-
-[![CI](https://github.com/antomanc/aginit/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/aginit/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
-
-## Quickstart
-
-Requires Node.js 22.12+, Git, npm/npx, and internet access. Install your chosen package manager before using it.
-
-Run the interactive wizard:
+aginit gives a repo what agents need to do good work from the first session: an `AGENTS.md`
+that explains the project, a curated set of engineering skills, a codebase graph so agents
+read less and understand more, and a test harness they can actually run. It wires up
+upstream tools instead of reimplementing them.
 
 ```bash
 npx @antomanc/aginit
-# or
-pnpm dlx @antomanc/aginit
 ```
 
-For a global installation:
+[![CI](https://github.com/antomanc/aginit/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/aginit/actions)
+[![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> **Beta.** Expect flags and defaults to change before 1.0.
+
+## Why
+
+Agents in a fresh repo usually start out blind:
+- no instructions, so they guess at the build, test and package manager commands
+- no shared workflow for specs, TDD, code review or bug hunting
+- grep-and-read-everything to find their way around the code
+- no test runner, so "it works" is never checked
+- a different setup in every repo, done by hand
+
+aginit sets all of this up the same way every time, and you can re-run it whenever you want.
+
+## What you get
+
+| | |
+|---|---|
+| **Instructions** | `AGENTS.md` with the project's real commands, invariants and a first-session playbook, shared by Antigravity, Codex and any agent that reads `AGENTS.md` |
+| **Skills** | All 27 stable [Matt Pocock skills](https://github.com/mattpocock/skills) (`tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`...) plus [humanizer](https://github.com/blader/humanizer), installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills) |
+| **Codebase graph** | [Graft](https://www.npmjs.com/package/@nanonets/graft): `graft map` and `graft ask` give agents the relevant code spans before they grep |
+| **Test tooling** | Vitest for TypeScript projects, plus Playwright when a web framework is selected |
+| **Web extras** | [Impeccable](https://github.com/pbakaus/impeccable) for UI design and [agent-browser](https://github.com/vercel-labs/agent-browser) for visual QA, with its CLI and browser binaries installed so it works out of the box |
+| **Scaffolding** | Official Vite and Next.js scaffolders, or a Commander-based TypeScript CLI |
+| **Maintenance** | `aginit doctor` checks readiness; `aginit update` refreshes skills and the graph |
+
+## Quick start
+
+Requires Node.js 22.12+, Git and internet access.
 
 ```bash
-npm install -g @antomanc/aginit
-aginit
+npx @antomanc/aginit          # interactive wizard
+pnpm dlx @antomanc/aginit     # same, with pnpm
+npm install -g @antomanc/aginit   # or install globally and run `aginit`
 ```
 
-The wizard lets you create a project or initialize an existing directory, then choose a preset, framework, and package manager. Existing projects retain their detected package manager.
+The wizard creates a new project or initializes the current directory, then asks for a
+preset, framework and package manager. Existing projects keep the package manager they
+already use.
 
-Graft requires a separate installation. Use `--no-graft` to skip it.
+Graft is installed separately (or skip it with `--no-graft`):
 
 ```bash
 npm install -g @nanonets/graft
 ```
 
-## Usage
+## Commands
+
+```
+aginit new [name]   Create a new project
+aginit init         Add or update agent setup in the current directory
+aginit doctor       Check Node.js, package manager, Git, Graft, Codex, Skills CLI, agent-browser and config
+aginit update       Update installed skills and rebuild the Graft index
+```
+
+Useful flags: `--preset web|cli|generic`, `--framework none|vite|next|existing`,
+`--package-manager pnpm|npm|yarn|bun`, `--dry-run`, `--no-skills`, `--no-graft`, `--no-git`.
 
 ```bash
 aginit new my-app --preset web --framework vite
 aginit new my-app --preset web --framework next --package-manager npm
 aginit new my-cli --preset cli
-aginit new my-repo --preset generic
-
-# Run inside an existing project
-aginit init --preset web
-
-# Preview changes
-aginit init --dry-run
-aginit new my-app --preset web --dry-run
+aginit init --preset generic --dry-run
 ```
 
-Supported package managers: `pnpm` (default), `npm`, `yarn`, and `bun`. Set one with `--package-manager`; the choice is saved in `aginit.config.json` and passed to framework scaffolders.
-
-### Presets
+## Presets
 
 | Preset | Setup |
 | --- | --- |
 | `web` | TypeScript and Vitest, with optional Vite or Next.js scaffolding. Playwright is added when a web framework is selected. |
-| `cli` | Node.js/TypeScript CLI with Commander, Picocolors, and Vitest. |
-| `generic` | Git, agent instructions, skills, and Graft. Leaves an existing `package.json` untouched. |
+| `cli` | Node.js/TypeScript CLI with Commander, Picocolors and Vitest. |
+| `generic` | Git, `AGENTS.md`, skills and Graft. Leaves an existing `package.json` untouched. |
 
-The web preset supports `--framework none` (default), `vite`, `next`, or `existing`. Vite and Next.js use their official scaffolders. `none` creates a TypeScript baseline without a bundler or browser test configuration.
+The web preset's `--framework none` (default) creates a TypeScript baseline without a bundler
+or browser tests. `existing` keeps the framework you already have.
 
-### Agent configuration
-
-- `AGENTS.md`: project instructions shared by agents.
-- `.agents/skills/`: the 27 stable skills from Matt Pocock (engineering + productivity), and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser; for those, `aginit init` also installs the `agent-browser` CLI and its browser binaries so the skill works out of the box.
-- Graft: a codebase graph for `graft map` and `graft ask`.
-- `aginit.config.json`: saved preset, framework, package manager, agents, and skill sources.
-
-The standard skill set includes the spec and tickets workflow (`to-spec`, `to-tickets`, `implement-spec`); there is no workflow selector to run. Skills from Matt Pocock's `misc` and `in-progress` buckets are left out. Use `--no-skills` to skip skill installation.
+Your choices (preset, framework, package manager, agents, skill sources) are saved in
+`aginit.config.json`, so the next run starts from them. The package manager is also passed
+to framework scaffolders.
 
 ## Existing projects
 
-`aginit init` preserves application source, custom scripts, dependency versions, and existing test configurations. The web and CLI presets add missing test tooling; projects with a custom test runner receive a separate `test:unit` script.
+`aginit init` never replaces application code. It keeps your source, custom scripts,
+dependency versions and test configs, and only adds what's missing. If you already use a
+different test runner, aginit adds a separate `test:unit` script instead of touching yours.
 
-Repeated initialization preserves saved settings and extension fields. Explicit options override the corresponding settings. Invalid configuration is reported before files are changed. `--no-skills` skips installation while retaining saved skill sources.
+An existing `AGENTS.md` is preserved; aginit only appends its bootstrap section. Configs from
+older versions that used the retired default skill selection are upgraded to the current
+set, while a skill list you narrowed by hand stays as written.
 
-Configs written by older versions that still hold the retired default skill selection are upgraded to the current standard set, along with dropping the retired `skills.workflow` selector. A skill list narrowed by hand is preserved as written.
+## Design
 
-## Maintenance
+- **Orchestrates, doesn't vendor.** Skills, Graft, Vite, Next.js and Playwright come from
+  their upstream tools. aginit picks good defaults and runs them.
+- **Idempotent.** Re-running the same init is safe; explicit options override saved settings.
+- **Honest dry-run.** `--dry-run` lists every planned operation without writing files or
+  downloading tools. (Files produced by upstream scaffolders are only known after they run.)
+- **Fails loudly.** Invalid config is reported before any file changes. A failed scaffold
+  stops the command; missing Graft, a failed skill install or a failed agent-browser setup
+  exits nonzero and keeps the scaffold, so you can fix it and re-run `aginit init`.
+- **Hands off your system.** If the Linux kernel blocks Chrome's sandbox (`No usable
+  sandbox!`), aginit tells you the sysctl fix and the narrower `--no-sandbox` option. It
+  never changes system settings for you.
 
-```bash
-aginit doctor
-aginit update
-```
+## Related
 
-`doctor` checks Node.js, the project package manager, Git, Graft, Codex, the Skills CLI, the agent-browser runtime (CLI, browser binaries, Chrome sandbox prerequisites) when the project ships that skill, and project configuration. It may download the Skills CLI through npx.
-
-`update` runs project-scoped `skills update` and rebuilds the Graft index. Disabled integrations are skipped; failed updates return a nonzero exit status.
-
-## Behavior
-
-- Rerunning the same initialization is idempotent. Manifest additions and explicit configuration changes are applied without replacing application code.
-- Framework scaffold failures stop the command.
-- Missing Graft, failed skill installation, or a failed agent-browser runtime setup returns a nonzero exit status. The scaffold is retained so you can fix the prerequisite and rerun `aginit init`.
-- Linux kernels that restrict unprivileged user namespaces block Chrome's sandbox (`No usable sandbox!`). aginit reports the sysctl fix and the narrower `--no-sandbox` alternative; it never changes system settings on your behalf.
-- `--dry-run` lists planned operations without writing files or downloading framework tools. Files produced by upstream scaffolders are only known after they run.
-- Playwright's starter test is skipped until you add an application URL and assertions. Generated test harnesses still need application-specific tests.
+[agbox](https://github.com/antomanc/agbox) prepares the *machine* for AI agents (toolchains,
+Docker, Playwright, Tailscale, snapshots). aginit prepares the *project*. Use them together:
+`agbox setup`, then `npx @antomanc/aginit` in a new project.
 
 ## Development
 
@@ -107,17 +131,17 @@ pnpm install --frozen-lockfile
 pnpm check                    # typecheck (src + tests), tests, build, dependency audit
 pnpm check:skills             # compare the standard skill set with upstream (after pnpm build)
 pnpm smoke                    # verify projects generated from the packed tarball
-pnpm smoke --frameworks       # also scaffold, test, build, and serve Vite and Next.js
-pnpm smoke --package-managers # verify pnpm, Yarn, and Bun consumer commands
-npm pack --dry-run
+pnpm smoke --frameworks       # also scaffold, test, build and serve Vite and Next.js
+pnpm smoke --package-managers # verify pnpm, Yarn and Bun consumer commands
 ```
 
-Framework smoke tests download upstream tools and dependencies. `npm publish` runs `pnpm check` and the base consumer smoke test before publication.
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes, [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and [SECURITY.md](SECURITY.md) for vulnerability reporting.
+`npm publish` runs `pnpm check` and the base smoke test first. See
+[CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and
+[SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE) © 2026 Antonio Mancuso.
+[MIT](LICENSE) © 2026 Antonio Mancuso
 
-Upstream tools and skills retain their own licenses. Aginit does not vendor or relicense them. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Upstream tools and skills keep their own licenses; aginit does not vendor or relicense them.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
