@@ -12,6 +12,11 @@ import { setupGit } from '../adapters/git.js';
 import { setupAgentsMarkdown } from '../adapters/agents-md.js';
 import { installAllSkills } from '../adapters/skills.js';
 import { initGraft } from '../adapters/graft.js';
+import {
+  agentBrowserConfigured,
+  agentBrowserStubInstalled,
+  setupAgentBrowser
+} from '../adapters/agent-browser.js';
 import { ensureDir, writeJsonFile } from '../utils/fs.js';
 import {
   readProjectConfig,
@@ -100,7 +105,11 @@ export async function createProject(
     );
   let complete = true;
 
-  const totalSteps = 6;
+  // The agent-browser skill stub is inert without its CLI and browser
+  // binaries, so provisioning them gets its own step when the skill applies.
+  const agentBrowserWanted =
+    agentBrowserConfigured(config.skills.sources) || agentBrowserStubInstalled(targetDir);
+  const totalSteps = agentBrowserWanted ? 7 : 6;
   let currentStep = 1;
 
   // Scaffold into the clean directory before Git adds files that upstream tools reject.
@@ -151,7 +160,15 @@ export async function createProject(
     logger.dim('Skills installation skipped (--no-skills or empty configuration)');
   }
 
-  // Step 6: Codebase intelligence (Graft)
+  // Provision the agent-browser runtime the skill stub drives
+  if (agentBrowserWanted) {
+    if (!silent) logger.step(currentStep++, totalSteps, 'Provisioning agent-browser runtime');
+    const abOk = await setupAgentBrowser({ dryRun, silent, cwd: targetDir });
+    complete &&= abOk;
+    if (!silent && abOk) logger.success('agent-browser runtime ready (CLI + browser)');
+  }
+
+  // Codebase intelligence (Graft)
   if (!silent) logger.step(currentStep++, totalSteps, 'Configuring codebase intelligence');
   if (config.codebase.graft && options.graft !== false) {
     const graftOk = await initGraft(targetDir, { dryRun, silent });

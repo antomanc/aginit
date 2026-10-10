@@ -66,7 +66,7 @@ The web preset supports `--framework none` (default), `vite`, `next`, or `existi
 ### Agent configuration
 
 - `AGENTS.md`: project instructions shared by agents.
-- `.agents/skills/`: the 27 stable skills from Matt Pocock (engineering + productivity), and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser.
+- `.agents/skills/`: the 27 stable skills from Matt Pocock (engineering + productivity), and `humanizer` from Blake Robbins. Web projects also include Impeccable and agent-browser; for those, `aginit init` also installs the `agent-browser` CLI and its browser binaries so the skill works out of the box.
 - Graft: a codebase graph for `graft map` and `graft ask`.
 - `aginit.config.json`: saved preset, framework, package manager, agents, and skill sources.
 
@@ -87,7 +87,7 @@ aginit doctor
 aginit update
 ```
 
-`doctor` checks Node.js, the project package manager, Git, Graft, Codex, the Skills CLI, and project configuration. It may download the Skills CLI through npx.
+`doctor` checks Node.js, the project package manager, Git, Graft, Codex, the Skills CLI, the agent-browser runtime (CLI, browser binaries, Chrome sandbox prerequisites) when the project ships that skill, and project configuration. It may download the Skills CLI through npx.
 
 `update` runs project-scoped `skills update` and rebuilds the Graft index. Disabled integrations are skipped; failed updates return a nonzero exit status.
 
@@ -95,7 +95,8 @@ aginit update
 
 - Rerunning the same initialization is idempotent. Manifest additions and explicit configuration changes are applied without replacing application code.
 - Framework scaffold failures stop the command.
-- Missing Graft or failed skill installation returns a nonzero exit status. The scaffold is retained so you can fix the prerequisite and rerun `aginit init`.
+- Missing Graft, failed skill installation, or a failed agent-browser runtime setup returns a nonzero exit status. The scaffold is retained so you can fix the prerequisite and rerun `aginit init`.
+- Linux kernels that restrict unprivileged user namespaces block Chrome's sandbox (`No usable sandbox!`). aginit reports the sysctl fix and the narrower `--no-sandbox` alternative; it never changes system settings on your behalf.
 - `--dry-run` lists planned operations without writing files or downloading framework tools. Files produced by upstream scaffolders are only known after they run.
 - Playwright's starter test is skipped until you add an application URL and assertions. Generated test harnesses still need application-specific tests.
 
