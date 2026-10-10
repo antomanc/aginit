@@ -33,7 +33,7 @@ export function createCliProgram(): Command {
 
   program
     .name('aginit')
-    .description('Minimal, modular AI-first project bootstrapper for AI coding agents')
+    .description('Set up a new or existing project for AI coding agents')
     .version(readVersion());
 
   // Root action: interactive wizard when in TTY, else display help

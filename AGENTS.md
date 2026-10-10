@@ -1,6 +1,6 @@
 # aginit
 
-Minimal, modular AI-first project bootstrapper for AI coding agents.
+Set up new or existing projects for AI coding agents in one command: AGENTS.md, skills, codebase graph and test tooling.
 
 ## Core Invariants
 - Orchestrate upstream tools; do not duplicate, vendor, or fork them.
