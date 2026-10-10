@@ -15,6 +15,8 @@ npx @antomanc/aginit
 [![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+<p align="center"><img src="docs/assets/demo.gif" alt="aginit wizard creating a CLI project with AGENTS.md, skills and a Graft codebase graph" width="720"></p>
+
 > **Beta.** Expect flags and defaults to change before 1.0.
 
 ## Why
