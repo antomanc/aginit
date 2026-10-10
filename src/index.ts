@@ -9,6 +9,7 @@ export * from './adapters/skills.js';
 export * from './adapters/graft.js';
 export * from './adapters/agents-md.js';
 export * from './adapters/browser.js';
+export * from './adapters/agent-browser.js';
 export * from './cli/new.js';
 export * from './cli/init.js';
 export * from './cli/doctor.js';

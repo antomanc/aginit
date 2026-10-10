@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Web projects no longer ship an agent-browser skill stub without its runtime: `aginit init` now installs the `agent-browser` CLI (`npm i -g agent-browser`) and its browser binaries (`agent-browser install`) when the skill is configured or already on disk, and reports a failed provisioning as an incomplete setup (#4).
+- `aginit init` and `aginit doctor` detect the Linux restriction that blocks Chrome's sandbox (`kernel.apparmor_restrict_unprivileged_userns=1`) and report the persisted sysctl fix plus the narrower `--no-sandbox` alternative instead of failing later with `No usable sandbox!`.
+
+### Added
+
+- `aginit doctor` verifies the agent-browser runtime when the project ships the skill: CLI presence, upstream `agent-browser doctor --quick --offline --json` findings, and Chrome sandbox prerequisites.
+
 ## 0.2.0 — 2026-10-09
 
 ### Breaking
