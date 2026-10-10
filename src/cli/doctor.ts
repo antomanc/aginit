@@ -10,6 +10,12 @@ import {
 } from '../config/schema.js';
 import { detectPackageManager } from '../adapters/package-manager.js';
 import { getInstalledSkills } from '../adapters/skills.js';
+import {
+  agentBrowserConfigured,
+  agentBrowserStubInstalled,
+  findUsernsRestriction,
+  runAgentBrowserDiagnostics
+} from '../adapters/agent-browser.js';
 import { readProjectConfig } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
 
@@ -213,6 +219,73 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
         ? undefined
         : 'Run `aginit init` or `npx skills add ...` to install skills'
   });
+
+  // 10. agent-browser runtime (only when the project ships the skill)
+  const agentBrowserWanted =
+    projectConfig !== null &&
+    (agentBrowserConfigured(projectConfig.skills.sources) || agentBrowserStubInstalled(targetDir));
+  if (agentBrowserWanted) {
+    const abExists = await commandExists('agent-browser');
+    let abVersion = '';
+    if (abExists) {
+      const av = await runExecutable('agent-browser', ['--version'], { silent: true });
+      abVersion = av.ok ? av.stdout : '';
+    }
+    checks.push({
+      name: 'agent-browser CLI',
+      category: 'AI Tooling',
+      ok: abExists,
+      version: abVersion,
+      detail: abExists
+        ? `Installed globally (${abVersion || 'version unknown'})`
+        : 'agent-browser skill is installed but the CLI is not in PATH',
+      suggestion: abExists
+        ? undefined
+        : 'Install the runtime: `npm i -g agent-browser && agent-browser install`'
+    });
+
+    if (abExists) {
+      const diagnostics = await runAgentBrowserDiagnostics();
+      if (diagnostics !== null) {
+        checks.push({
+          name: 'agent-browser browser runtime',
+          category: 'AI Tooling',
+          ok: diagnostics.length === 0,
+          detail:
+            diagnostics.length === 0
+              ? 'Upstream doctor reports browser and launch environment healthy'
+              : diagnostics.map((d) => d.message).join('; '),
+          suggestion:
+            diagnostics.length === 0
+              ? undefined
+              : (diagnostics.find((d) => d.fix)?.fix ?? 'Run `agent-browser doctor` for details')
+        });
+      }
+    }
+  }
+
+  // 11. Chrome sandbox prerequisites — agent-browser and Playwright both
+  // launch Chrome from the same sandbox on Linux.
+  const sandboxRelevant = agentBrowserWanted || projectConfig?.browser.playwright === true;
+  if (sandboxRelevant) {
+    const restriction = findUsernsRestriction();
+    if (restriction) {
+      checks.push({
+        name: 'Chrome sandbox (unprivileged user namespaces)',
+        category: 'Environment',
+        ok: false,
+        detail: `${restriction.sysctl}=${restriction.value} blocks Chrome's sandbox: browser launches fail with "No usable sandbox!"`,
+        suggestion: `Lift it: echo '${restriction.sysctl}=${restriction.fixValue}' | sudo tee /etc/sysctl.d/99-agent-browser-userns.conf && sudo sysctl --system — or pass --args "--no-sandbox" per launch`
+      });
+    } else if (process.platform === 'linux') {
+      checks.push({
+        name: 'Chrome sandbox (unprivileged user namespaces)',
+        category: 'Environment',
+        ok: true,
+        detail: 'Unprivileged user namespaces available to Chrome'
+      });
+    }
+  }
 
   // Print grouped results
   const categories: Array<'Environment' | 'AI Tooling' | 'Project Config'> = [
