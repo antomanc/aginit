@@ -62,6 +62,12 @@ export function generateAgentsMarkdown(
       '- **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.';
   }
 
+  let simplicityCapability = '';
+  if (skillInstalled('ponytail')) {
+    simplicityCapability =
+      '- **Simplicity**: Use `ponytail` skill for the smallest complete change and to cut over-engineering.';
+  }
+
   let uiCapability = '';
   if (isWeb && skillInstalled('impeccable')) {
     uiCapability =
@@ -109,6 +115,7 @@ export function generateAgentsMarkdown(
       : 'Skills installation is disabled in this configuration.',
     engineeringCapability || undefined,
     proseCapability || undefined,
+    simplicityCapability || undefined,
     specCapability || undefined,
     uiCapability || undefined,
     browserCapability || undefined,

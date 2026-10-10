@@ -33,7 +33,7 @@ aginit sets all of this up the same way every time, and you can re-run it whenev
 | | |
 |---|---|
 | **Instructions** | `AGENTS.md` with the project's real commands, invariants and a first-session playbook, shared by Antigravity, Codex and any agent that reads `AGENTS.md` |
-| **Skills** | All 27 stable [Matt Pocock skills](https://github.com/mattpocock/skills) (`tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`...) plus [humanizer](https://github.com/blader/humanizer), installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills) |
+| **Skills** | All 27 stable [Matt Pocock skills](https://github.com/mattpocock/skills) (`tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`...) plus [humanizer](https://github.com/blader/humanizer) and [ponytail](https://github.com/DietrichGebert/ponytail), installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills) |
 | **Codebase graph** | [Graft](https://www.npmjs.com/package/@nanonets/graft): `graft map` and `graft ask` give agents the relevant code spans before they grep |
 | **Test tooling** | Vitest for TypeScript projects, plus Playwright when a web framework is selected |
 | **Web extras** | [Impeccable](https://github.com/pbakaus/impeccable) for UI design and [agent-browser](https://github.com/vercel-labs/agent-browser) for visual QA, with its CLI and browser binaries installed so it works out of the box |

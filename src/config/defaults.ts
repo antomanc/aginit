@@ -83,6 +83,10 @@ export function getDefaultConfig(
               skills: ['humanizer']
             },
             {
+              package: 'dietrichgebert/ponytail',
+              skills: ['ponytail']
+            },
+            {
               package: 'pbakaus/impeccable',
               skills: ['impeccable']
             },
@@ -127,6 +131,10 @@ export function getDefaultConfig(
             {
               package: 'blader/humanizer',
               skills: ['humanizer']
+            },
+            {
+              package: 'dietrichgebert/ponytail',
+              skills: ['ponytail']
             }
           ]
         },
@@ -165,6 +173,10 @@ export function getDefaultConfig(
             {
               package: 'blader/humanizer',
               skills: ['humanizer']
+            },
+            {
+              package: 'dietrichgebert/ponytail',
+              skills: ['ponytail']
             }
           ]
         },

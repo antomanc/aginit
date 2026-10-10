@@ -44,6 +44,10 @@
       {
         "package": "blader/humanizer",
         "skills": ["humanizer"]
+      },
+      {
+        "package": "dietrichgebert/ponytail",
+        "skills": ["ponytail"]
       }
     ]
   },
