@@ -1,6 +1,6 @@
 {
   "name": "@antomanc/aginit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Set up a new or existing project for AI coding agents in one command: AGENTS.md, Matt Pocock skills, Graft codebase graph, Vitest/Playwright. Orchestrates upstream tools, idempotent.",
   "type": "module",
   "main": "dist/index.js",

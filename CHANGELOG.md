@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-10
 
 ### Fixed
 
@@ -10,7 +10,6 @@
 ### Added
 
 - The [ponytail](https://github.com/DietrichGebert/ponytail) skill installs by default in every preset, and AGENTS.md points agents to it for the smallest complete change (#5). Existing configs keep their skill sources as written; add `dietrichgebert/ponytail` to `skills.sources` to opt in.
-
 - `aginit doctor` verifies the agent-browser runtime when the project ships the skill: CLI presence, upstream `agent-browser doctor --quick --offline --json` findings, and Chrome sandbox prerequisites.
 
 ## 0.2.0 — 2026-10-09
