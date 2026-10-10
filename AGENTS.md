@@ -17,6 +17,7 @@ Set up new or existing projects for AI coding agents in one command: AGENTS.md, 
 Installed skills live in `.agents/skills/` (shared by Antigravity and Codex):
 - **Engineering**: the full stable Matt Pocock skill set — 27 skills covering `tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`, `research`, `retro`, `triage`, and more (see `.agents/skills/`)
 - **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.
+- **Simplicity**: Use `ponytail` skill for the smallest complete change and to cut over-engineering.
 - **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.
 
 ## Bootstrap & First Session

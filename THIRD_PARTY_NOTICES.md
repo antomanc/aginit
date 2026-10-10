@@ -24,6 +24,12 @@ Each integrated upstream tool is governed by its respective authors and licenses
   - Author: Blake Robbins / Humanizer contributors
   - Repository: https://github.com/blader/humanizer
 
+- **Ponytail**
+  - Project: Agent skill for the smallest complete change and less over-engineering
+  - Author: Dietrich Gebert
+  - License: MIT
+  - Repository: https://github.com/DietrichGebert/ponytail
+
 - **Impeccable**
   - Project: Frontend craft & design system review skill
   - Author: Peter Bak-Hansen
