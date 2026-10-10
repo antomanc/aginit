@@ -141,7 +141,7 @@ pnpm smoke --package-managers # verify pnpm, Yarn and Bun consumer commands
 
 ## License
 
-[MIT](LICENSE) © 2026 Antonio Mancuso
+[MIT](LICENSE) © 2026 Antonio Mancini
 
 Upstream tools and skills keep their own licenses; aginit does not vendor or relicense them.
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
