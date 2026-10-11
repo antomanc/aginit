@@ -71,4 +71,34 @@ describe('ignoreVendoredSkills', () => {
     expect(read('eslint.config.js')).toBe(config);
     expect(vendoredSkillsExposure(dir)).toHaveLength(1);
   });
+  it('force-ignores vendored dirs in biome.json, keeping its indentation', () => {
+    write(
+      'biome.json',
+      '{\n\t"files": { "ignoreUnknown": false },\n\t"linter": { "enabled": true }\n}\n'
+    );
+    expect(ignoreVendoredSkills(dir, { silent: true })).toEqual([]);
+    const config = JSON.parse(read('biome.json'));
+    expect(config.files.includes).toEqual(['**', '!!**/.agents', '!!**/.claude']);
+    expect(config.linter.enabled).toBe(true);
+    expect(read('biome.json')).toContain(
+      '\n\t\t"includes": ["**", "!!**/.agents", "!!**/.claude"]\n'
+    );
+    expect(vendoredSkillsExposure(dir)).toEqual([]);
+  });
+
+  it('appends to existing biome includes and advises for a commented biome.jsonc', () => {
+    write('biome.json', JSON.stringify({ files: { includes: ['src/**'] } }));
+    ignoreVendoredSkills(dir, { silent: true });
+    expect(JSON.parse(read('biome.json')).files.includes).toEqual([
+      'src/**',
+      '!!**/.agents',
+      '!!**/.claude'
+    ]);
+
+    fs.rmSync(path.join(dir, 'biome.json'));
+    write('biome.jsonc', '{\n  // comment\n  "linter": {}\n}\n');
+    expect(ignoreVendoredSkills(dir, { silent: true })[0]).toContain(
+      'add "!!**/.agents", "!!**/.claude" to files.includes in biome.jsonc'
+    );
+  });
 });
