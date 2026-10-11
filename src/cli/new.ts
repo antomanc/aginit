@@ -12,6 +12,7 @@ import { setupGit } from '../adapters/git.js';
 import { setupAgentsMarkdown, setupClaudeMarkdown } from '../adapters/agents-md.js';
 import { claudeCodeEnabled, installAllSkills, skillAgents } from '../adapters/skills.js';
 import { initGraft } from '../adapters/graft.js';
+import { ignoreVendoredSkills } from '../adapters/tool-ignores.js';
 import {
   agentBrowserConfigured,
   agentBrowserStubInstalled,
@@ -159,6 +160,10 @@ export async function createProject(
     }
   } else if (!silent) {
     logger.dim('Skills installation skipped (--no-skills or empty configuration)');
+  }
+  if ((options.skills !== false && config.skills.sources.length > 0) || agentBrowserWanted) {
+    const advice = ignoreVendoredSkills(targetDir, { dryRun, silent: true });
+    if (!silent) for (const line of advice) logger.warn(line);
   }
 
   // Provision the agent-browser runtime the skill stub drives

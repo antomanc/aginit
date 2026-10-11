@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 — 2026-10-11
+
+### Fixed
+
+- `typecheck` on existing web projects uses the framework's checker instead of `tsc --noEmit`, which can't resolve Astro virtual modules or single-file components: `astro check` (adds `@astrojs/check`), `nuxi typecheck`, `svelte-kit sync && svelte-check` or `svelte-check`, and `vue-tsc` (each adds its checker package when missing). An existing `typecheck` script is left alone.
+- Projects with a solution-style `tsconfig.json` (`"files": []` plus `references`, as in the Vite templates) get `tsc -b --noEmit`. Plain `tsc --noEmit` checked nothing there, so a fresh `--framework vite` project passed typecheck with type errors.
+- Vendored skills no longer break the project's linters and formatters. `aginit init` and `aginit update` add `.agents/` and `.claude/` to `.prettierignore`, to `.eslintignore` (legacy ESLint, oxlint), to the global ignores of a flat ESLint config (`globalIgnores([...])` or an ignores-only object), and to `files.includes` in `biome.json` (Biome 2.2+). Configs that can't be edited safely get a warning with the exact line to add.
+- `aginit doctor` reports linters and formatters that still check vendored skills.
+
 ## 0.4.0 — 2026-10-11
 
 ### Added

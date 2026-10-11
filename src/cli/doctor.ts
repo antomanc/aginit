@@ -23,6 +23,7 @@ import {
   runAgentBrowserDiagnostics
 } from '../adapters/agent-browser.js';
 import { readProjectConfig } from '../config/validation.js';
+import { vendoredSkillsExposure } from '../adapters/tool-ignores.js';
 import { logger } from '../utils/logger.js';
 
 interface CheckItem {
@@ -225,6 +226,22 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
         ? undefined
         : 'Run `aginit init` or `npx skills add ...` to install skills'
   });
+
+  // 9a. Vendored skills must stay out of the project's linters and formatters
+  if (installedSkills.length > 0) {
+    const exposure = vendoredSkillsExposure(targetDir);
+    checks.push({
+      name: 'Lint/format ignores for vendored skills',
+      category: 'Project Config',
+      ok: exposure.length === 0,
+      detail:
+        exposure.length === 0
+          ? 'Detected linters and formatters skip .agents/ and .claude/'
+          : 'Project linters or formatters will check vendored skill files',
+      suggestion:
+        exposure.length === 0 ? undefined : `Run \`aginit update\`, or ${exposure.join('; ')}`
+    });
+  }
 
   // 9b. Claude Code: skills linked into .claude/skills/ and AGENTS.md reachable
   if (projectConfig !== null && claudeCodeEnabled(projectConfig)) {

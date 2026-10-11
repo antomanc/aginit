@@ -4,6 +4,7 @@ import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
 import { runDoctor } from './doctor.js';
 import { claudeCodeEnabled, ensureClaudeSkillLinks, updateSkills } from '../adapters/skills.js';
+import { ignoreVendoredSkills } from '../adapters/tool-ignores.js';
 import { setupClaudeMarkdown } from '../adapters/agents-md.js';
 import { buildGraft } from '../adapters/graft.js';
 import { readProjectConfig } from '../config/validation.js';
@@ -168,6 +169,10 @@ export function createCliProgram(): Command {
         (config ? await ensureClaudeSkillLinks(targetDir, config, { dryRun: options.dryRun }) : true);
       if (config && claudeCodeEnabled(config))
         setupClaudeMarkdown(targetDir, { dryRun: options.dryRun });
+      if (config?.skills.sources.length !== 0) {
+        const advice = ignoreVendoredSkills(targetDir, { dryRun: options.dryRun, silent: true });
+        for (const line of advice) logger.warn(line);
+      }
       const graftOk =
         config?.codebase.graft === false
           ? true

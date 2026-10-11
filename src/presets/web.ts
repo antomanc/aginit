@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { fileExists, safeWriteFile, writeJsonFile } from '../utils/fs.js';
+import { fileExists, readTextFile, safeWriteFile, writeJsonFile } from '../utils/fs.js';
 import { readPackageManifest } from '../config/validation.js';
 import { runExecutable } from '../utils/shell.js';
 import { PresetContext, PresetHandler } from './types.js';
@@ -7,6 +7,34 @@ import { setupBrowserTesting } from '../adapters/browser.js';
 import { setupAdr } from './adr.js';
 import { scaffoldCommand } from '../adapters/package-manager.js';
 import { addTestingDependencies, setupTesting } from './testing.js';
+
+/** Plain tsc cannot resolve framework virtual modules or single-file components,
+ * so those frameworks get their own checker (and the package that provides it). */
+function typecheckFor(
+  pkg: Record<string, any>,
+  targetDir: string,
+  freshNext: boolean
+): { script: string; checker?: [string, string] } {
+  const has = (name: string) => Boolean(pkg.dependencies?.[name] || pkg.devDependencies?.[name]);
+  if (freshNext) return { script: 'next typegen && tsc --noEmit' };
+  if (has('astro')) return { script: 'astro check', checker: ['@astrojs/check', '^0.9.10'] };
+  if (has('nuxt')) return { script: 'nuxi typecheck', checker: ['vue-tsc', '^3.3.13'] };
+  if (has('@sveltejs/kit'))
+    return {
+      script: 'svelte-kit sync && svelte-check --tsconfig ./tsconfig.json',
+      checker: ['svelte-check', '^4.7.6']
+    };
+  if (has('svelte')) return { script: 'svelte-check', checker: ['svelte-check', '^4.7.6'] };
+  // A solution-style tsconfig (Vite templates) has no files of its own: only build mode checks
+  // the referenced projects.
+  const build = /"references"\s*:/.test(readTextFile(path.join(targetDir, 'tsconfig.json')) || '');
+  if (has('vue'))
+    return {
+      script: build ? 'vue-tsc -b --noEmit' : 'vue-tsc --noEmit',
+      checker: ['vue-tsc', '^3.3.13']
+    };
+  return { script: build ? 'tsc -b --noEmit' : 'tsc --noEmit' };
+}
 
 export const webPreset: PresetHandler = {
   name: 'web',
@@ -55,8 +83,12 @@ export const webPreset: PresetHandler = {
     );
     addTestingDependencies(pkg, config.browser.playwright);
     if (fileExists(path.join(targetDir, 'tsconfig.json'))) {
-      pkg.scripts.typecheck ??=
-        fresh && framework === 'next' ? 'next typegen && tsc --noEmit' : 'tsc --noEmit';
+      if (pkg.scripts.typecheck === undefined) {
+        const { script, checker } = typecheckFor(pkg, targetDir, fresh && framework === 'next');
+        pkg.scripts.typecheck = script;
+        if (checker && !pkg.dependencies?.[checker[0]] && !pkg.devDependencies[checker[0]])
+          pkg.devDependencies[checker[0]] = checker[1];
+      }
       if (!pkg.dependencies?.typescript && !pkg.devDependencies.typescript)
         pkg.devDependencies.typescript = '^5.6.3';
     }
