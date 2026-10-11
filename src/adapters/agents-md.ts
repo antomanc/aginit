@@ -111,7 +111,9 @@ export function generateAgentsMarkdown(
     '',
     '## AI Capabilities & Skills',
     hasSkills
-      ? 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex):'
+      ? config.agents.claudeCode === false
+        ? 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex):'
+        : 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex, linked into `.claude/skills/` for Claude Code):'
       : 'Skills installation is disabled in this configuration.',
     engineeringCapability || undefined,
     proseCapability || undefined,
@@ -174,4 +176,31 @@ export function setupAgentsMarkdown(
 
   const content = generateAgentsMarkdown(config, readPackageManifest(targetDir)?.scripts);
   return safeWriteFile(filePath, content, { overwrite: true, dryRun, silent });
+}
+
+export const CLAUDE_AGENTS_IMPORT = '@AGENTS.md';
+
+/**
+ * Point Claude Code at AGENTS.md through a one-line `@AGENTS.md` import. Recent
+ * Claude Code reads AGENTS.md on its own, but only without a CLAUDE.md and not
+ * in every session; the import works everywhere and never loads it twice.
+ * An existing CLAUDE.md is left alone (doctor reports a missing import).
+ */
+export function setupClaudeMarkdown(
+  targetDir: string,
+  options: { dryRun?: boolean; silent?: boolean } = {}
+): boolean {
+  const { dryRun = false, silent = false } = options;
+  const filePath = path.join(targetDir, 'CLAUDE.md');
+  if (fileExists(filePath)) {
+    if (!silent) logger.dim('CLAUDE.md already exists, preserving content.');
+    return true;
+  }
+  return safeWriteFile(filePath, CLAUDE_AGENTS_IMPORT + '\n', { overwrite: false, dryRun, silent });
+}
+
+export function claudeMarkdownImportsAgents(content: string): boolean {
+  return content
+    .split(/\r?\n/)
+    .some((line) => ['@AGENTS.md', '@./AGENTS.md'].includes(line.trim()));
 }

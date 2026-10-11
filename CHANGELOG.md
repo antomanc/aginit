@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-10-11
+
+### Added
+
+- Claude Code support. Skills are now installed for the `claude-code` agent too, so the Skills CLI links each one from `.agents/skills/` into `.claude/skills/`, where Claude Code finds it as `/name`. aginit writes a one-line `CLAUDE.md` (`@AGENTS.md`) when none exists, and wires Graft for Claude Code (`graft init --agents ... claude`). See `docs/adr/0002-claude-code-skills-and-instructions.md`.
+- New `agents.claudeCode` config flag, `true` by default. Configs without the flag keep loading and count as enabled. Set it to `false` to opt out.
+- `aginit update` links already-installed skills for Claude Code when they're missing from `.claude/skills/`, and adds the `CLAUDE.md` import.
+- `aginit doctor` reports skills missing from `.claude/skills/` and a `CLAUDE.md` that doesn't import `AGENTS.md`.
+
 ## 0.3.0 — 2026-10-10
 
 ### Fixed

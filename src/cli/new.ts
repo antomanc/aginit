@@ -9,8 +9,8 @@ import {
 } from '../config/schema.js';
 import { getPreset } from '../presets/registry.js';
 import { setupGit } from '../adapters/git.js';
-import { setupAgentsMarkdown } from '../adapters/agents-md.js';
-import { installAllSkills } from '../adapters/skills.js';
+import { setupAgentsMarkdown, setupClaudeMarkdown } from '../adapters/agents-md.js';
+import { claudeCodeEnabled, installAllSkills, skillAgents } from '../adapters/skills.js';
 import { initGraft } from '../adapters/graft.js';
 import {
   agentBrowserConfigured,
@@ -137,13 +137,14 @@ export async function createProject(
   // Step 4: Write or update AGENTS.md intake contract
   if (!silent) logger.step(currentStep++, totalSteps, 'Generating AGENTS.md intake guidance');
   setupAgentsMarkdown(targetDir, config, { dryRun, silent });
+  if (claudeCodeEnabled(config)) setupClaudeMarkdown(targetDir, { dryRun, silent });
   if (!silent) logger.success('Configured AGENTS.md');
 
   // Step 5: Install skills via skills.sh engine
   if (!silent) logger.step(currentStep++, totalSteps, 'Installing upstream skills via skills.sh');
   if (options.skills !== false && config.skills.sources.length > 0) {
     const { installed, failed } = await installAllSkills(targetDir, config.skills.sources, {
-      agents: [config.agents.primary, config.agents.secondary],
+      agents: skillAgents(config),
       dryRun,
       silent
     });
@@ -171,7 +172,11 @@ export async function createProject(
   // Codebase intelligence (Graft)
   if (!silent) logger.step(currentStep++, totalSteps, 'Configuring codebase intelligence');
   if (config.codebase.graft && options.graft !== false) {
-    const graftOk = await initGraft(targetDir, { dryRun, silent });
+    const graftOk = await initGraft(targetDir, {
+      dryRun,
+      silent,
+      claude: claudeCodeEnabled(config)
+    });
     complete &&= graftOk;
     if (graftOk && !silent) {
       logger.success('Graft context graph initialized');

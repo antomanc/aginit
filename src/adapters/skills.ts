@@ -4,7 +4,21 @@ import { fileExists, readJsonFile } from '../utils/fs.js';
 import { runExecutable } from '../utils/shell.js';
 import { logger } from '../utils/logger.js';
 import { validateUpstreamArgument } from '../config/validation.js';
-import { SkillSourceConfig } from '../config/schema.js';
+import { AginitConfig, SkillSourceConfig } from '../config/schema.js';
+
+/** The skills CLI id for Claude Code; it links skills into `.claude/skills/`. */
+export const CLAUDE_CODE_AGENT = 'claude-code';
+
+export function claudeCodeEnabled(config: Pick<AginitConfig, 'agents'>): boolean {
+  return config.agents.claudeCode !== false;
+}
+
+/** Agents the skills CLI installs into, deduplicated. */
+export function skillAgents(config: Pick<AginitConfig, 'agents'>): string[] {
+  const agents = [config.agents.primary, config.agents.secondary];
+  if (claudeCodeEnabled(config)) agents.push(CLAUDE_CODE_AGENT);
+  return [...new Set(agents)];
+}
 
 export interface SkillsLockFile {
   version: number;
@@ -30,7 +44,7 @@ export async function installSkillSource(
   source: SkillSourceConfig,
   options: SkillInstallOptions = {}
 ): Promise<{ ok: boolean; message?: string }> {
-  const { agents = ['antigravity', 'codex'], dryRun = false, silent = false } = options;
+  const { agents = ['antigravity', 'codex', CLAUDE_CODE_AGENT], dryRun = false, silent = false } = options;
 
   validateUpstreamArgument(source.package, 'skill package');
   for (const skill of source.skills) validateUpstreamArgument(skill, 'skill name');
@@ -103,6 +117,36 @@ export function getInstalledSkills(targetDir: string): string[] {
   }
 
   return [...installed];
+}
+
+/**
+ * Installed skills Claude Code cannot see because `.claude/skills/<name>/SKILL.md`
+ * is missing (the skills CLI links them there when `claude-code` is an agent).
+ */
+export function getSkillsMissingForClaude(targetDir: string): string[] {
+  return getInstalledSkills(targetDir).filter(
+    (name) => !fileExists(path.join(targetDir, '.claude', 'skills', name, 'SKILL.md'))
+  );
+}
+
+/**
+ * Bring projects set up before Claude Code support up to date: when Claude Code
+ * is enabled and some installed skill is not linked into `.claude/skills/`,
+ * reinstall the configured sources with the full agent list (idempotent).
+ */
+export async function ensureClaudeSkillLinks(
+  targetDir: string,
+  config: AginitConfig,
+  options: { dryRun?: boolean; silent?: boolean } = {}
+): Promise<boolean> {
+  if (!claudeCodeEnabled(config) || config.skills.sources.length === 0) return true;
+  if (getSkillsMissingForClaude(targetDir).length === 0) return true;
+  if (!options.silent) logger.dim('Linking skills into .claude/skills/ for Claude Code...');
+  const { failed } = await installAllSkills(targetDir, config.skills.sources, {
+    ...options,
+    agents: skillAgents(config)
+  });
+  return failed.length === 0;
 }
 
 export async function updateSkills(

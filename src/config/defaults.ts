@@ -70,7 +70,8 @@ export function getDefaultConfig(
         packageManager,
         agents: {
           primary: 'antigravity',
-          secondary: 'codex'
+          secondary: 'codex',
+          claudeCode: true
         },
         skills: {
           sources: [
@@ -120,7 +121,8 @@ export function getDefaultConfig(
         packageManager,
         agents: {
           primary: 'antigravity',
-          secondary: 'codex'
+          secondary: 'codex',
+          claudeCode: true
         },
         skills: {
           sources: [
@@ -162,7 +164,8 @@ export function getDefaultConfig(
         packageManager,
         agents: {
           primary: 'antigravity',
-          secondary: 'codex'
+          secondary: 'codex',
+          claudeCode: true
         },
         skills: {
           sources: [

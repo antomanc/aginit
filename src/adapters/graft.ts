@@ -9,9 +9,9 @@ export async function isGraftInstalled(): Promise<boolean> {
 
 export async function initGraft(
   targetDir: string,
-  options: { dryRun?: boolean; silent?: boolean } = {}
+  options: { dryRun?: boolean; silent?: boolean; claude?: boolean } = {}
 ): Promise<boolean> {
-  const { dryRun = false, silent = false } = options;
+  const { dryRun = false, silent = false, claude = true } = options;
 
   const installed = dryRun || (await isGraftInstalled());
   if (!installed) {
@@ -25,10 +25,12 @@ export async function initGraft(
 
   if (!silent) logger.dim('Initializing Graft context graph...');
 
-  // Run graft init with antigravity and agents, without touching global system files (--no-global)
+  // Wire Antigravity, AGENTS.md readers and (optionally) Claude Code's in-repo
+  // .claude/ + .mcp.json, without touching global system files (--no-global)
+  const agents = ['antigravity', 'agents', ...(claude ? ['claude'] : [])];
   const res = await runExecutable(
     'graft',
-    ['init', '--no-global', '--agents', 'antigravity', 'agents', '-y'],
+    ['init', '--no-global', '--agents', ...agents, '-y'],
     {
       cwd: targetDir,
       dryRun,

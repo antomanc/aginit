@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
 import { runDoctor } from './doctor.js';
-import { updateSkills } from '../adapters/skills.js';
+import { claudeCodeEnabled, ensureClaudeSkillLinks, updateSkills } from '../adapters/skills.js';
+import { setupClaudeMarkdown } from '../adapters/agents-md.js';
 import { buildGraft } from '../adapters/graft.js';
 import { readProjectConfig } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
@@ -161,9 +162,12 @@ export function createCliProgram(): Command {
       const targetDir = process.cwd();
       const config = readProjectConfig(targetDir);
       const skillsOk =
-        config?.skills.sources.length === 0
+        (config?.skills.sources.length === 0
           ? true
-          : await updateSkills(targetDir, { dryRun: options.dryRun });
+          : await updateSkills(targetDir, { dryRun: options.dryRun })) &&
+        (config ? await ensureClaudeSkillLinks(targetDir, config, { dryRun: options.dryRun }) : true);
+      if (config && claudeCodeEnabled(config))
+        setupClaudeMarkdown(targetDir, { dryRun: options.dryRun });
       const graftOk =
         config?.codebase.graft === false
           ? true

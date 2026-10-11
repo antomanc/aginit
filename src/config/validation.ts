@@ -45,6 +45,8 @@ export function validateConfig(value: unknown): AginitConfig {
   if (!isRecord(value.agents)) fail('agents');
   for (const key of ['primary', 'secondary'])
     validateUpstreamArgument(value.agents[key], `agent ${key}`);
+  if (value.agents.claudeCode !== undefined && typeof value.agents.claudeCode !== 'boolean')
+    fail('agents.claudeCode');
   if (!isRecord(value.skills) || !Array.isArray(value.skills.sources)) fail('skills.sources');
   if (value.skills.workflow !== undefined && !['minimal', 'spec'].includes(value.skills.workflow))
     fail('skills.workflow');
