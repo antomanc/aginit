@@ -9,7 +9,13 @@ import {
   PackageManager
 } from '../config/schema.js';
 import { detectPackageManager } from '../adapters/package-manager.js';
-import { getInstalledSkills } from '../adapters/skills.js';
+import fs from 'node:fs';
+import {
+  claudeCodeEnabled,
+  getInstalledSkills,
+  getSkillsMissingForClaude
+} from '../adapters/skills.js';
+import { claudeMarkdownImportsAgents } from '../adapters/agents-md.js';
 import {
   agentBrowserConfigured,
   agentBrowserStubInstalled,
@@ -169,7 +175,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     category: 'Project Config',
     ok: !!projectConfig,
     detail: projectConfig
-      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), pm: ${activePm}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}`
+      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), pm: ${activePm}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}${claudeCodeEnabled(projectConfig) ? '/claude-code' : ''}`
       : configError
         ? `Invalid configuration: ${configError}`
         : 'No aginit.config.json found in current directory',
@@ -219,6 +225,53 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
         ? undefined
         : 'Run `aginit init` or `npx skills add ...` to install skills'
   });
+
+  // 9b. Claude Code: skills linked into .claude/skills/ and AGENTS.md reachable
+  if (projectConfig !== null && claudeCodeEnabled(projectConfig)) {
+    if (!skillsDisabled && installedSkills.length > 0) {
+      const missing = getSkillsMissingForClaude(targetDir);
+      checks.push({
+        name: 'Claude Code Skills (.claude/skills/)',
+        category: 'Project Config',
+        ok: missing.length === 0,
+        detail:
+          missing.length === 0
+            ? `All ${installedSkills.length} skills visible to Claude Code`
+            : `${missing.length} skills not linked for Claude Code: ${missing.join(', ')}`,
+        suggestion:
+          missing.length === 0
+            ? undefined
+            : 'Run `aginit update` or `aginit init` to link skills into .claude/skills/ (or set agents.claudeCode: false)'
+      });
+    }
+
+    const claudePath = path.join(targetDir, 'CLAUDE.md');
+    const claudeExists = fileExists(claudePath);
+    // A CLAUDE.md symlinked to AGENTS.md is as good as the import.
+    const claudeIsAgentsLink =
+      claudeExists &&
+      agentsExists &&
+      fs.realpathSync(claudePath) === fs.realpathSync(agentsPath);
+    const claudeOk =
+      !claudeExists ||
+      claudeIsAgentsLink ||
+      claudeMarkdownImportsAgents(readTextFile(claudePath) || '');
+    checks.push({
+      name: 'CLAUDE.md → AGENTS.md',
+      category: 'Project Config',
+      ok: claudeExists && claudeOk,
+      detail: !claudeExists
+        ? 'No CLAUDE.md; only Claude Code v2.1.277+ reads AGENTS.md on its own'
+        : claudeOk
+          ? 'CLAUDE.md imports AGENTS.md'
+          : 'CLAUDE.md exists without `@AGENTS.md`, so Claude Code ignores AGENTS.md',
+      suggestion: !claudeExists
+        ? 'Run `aginit update` or `aginit init` to add a CLAUDE.md that imports AGENTS.md'
+        : claudeOk
+          ? undefined
+          : 'Add a line `@AGENTS.md` to CLAUDE.md'
+    });
+  }
 
   // 10. agent-browser runtime (only when the project ships the skill)
   const agentBrowserWanted =
