@@ -2,6 +2,11 @@
 
 **Set up a new or existing project for AI coding agents with one command.**
 
+[![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
+[![CI](https://github.com/antomanc/aginit/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/aginit/actions/workflows/ci.yml)
+[![Node version](https://img.shields.io/node/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
+[![License](https://img.shields.io/github/license/antomanc/aginit)](LICENSE)
+
 aginit gives a repo what agents need to do good work from the first session: an `AGENTS.md`
 that routes each task to the right doc, a curated set of engineering skills, a codebase graph
 so agents read less and understand more, a test harness they can actually run, and a way to
@@ -11,10 +16,6 @@ backend and CLI projects, and it wires up upstream tools instead of reimplementi
 ```bash
 npx @antomanc/aginit
 ```
-
-[![CI](https://github.com/antomanc/aginit/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/aginit/actions)
-[![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center"><img src="https://raw.githubusercontent.com/antomanc/aginit/main/docs/assets/demo.gif" alt="aginit v2 detecting a web project, configuring capabilities and e2e, and passing every doctor check" width="720"></p>
 
@@ -57,8 +58,9 @@ pnpm dlx @antomanc/aginit     # same, with pnpm
 npm install -g @antomanc/aginit   # or install globally and run `aginit`
 ```
 
-The wizard creates a new project or initializes the current directory, then asks for a
-preset, framework and package manager. Existing projects keep the package manager they
+The wizard creates a new project or initializes the current directory, auto-detects your stack,
+and walks you through platform, methodology, design, testing, UI driver, and add-on choices with
+a setup summary before writing any files. Existing projects keep the package manager they
 already use.
 
 Graft is installed separately (or skip it with `--no-graft`):
