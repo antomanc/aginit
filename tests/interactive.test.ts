@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@clack/prompts', () => ({
   select: mocks.select,
+  multiselect: async () => [],
   note: vi.fn(),
   confirm: mocks.confirm,
   text: mocks.text,
@@ -64,7 +65,7 @@ it('passes the selected v2 profile to setup', async () => {
   expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({
     preset: 'generic',
     profile: { platform: 'web', methodology: 'superpowers', design: 'impeccable',
-      testing: 'e2e', uiDriver: 'agent-browser' }
+      testing: 'e2e', uiDriver: 'agent-browser', addons: [] }
   }));
 });
 it('leaves setup untouched when the user declines the summary', async () => {

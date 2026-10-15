@@ -191,7 +191,14 @@ async function promptProfile(
   const design = flags.design ?? await choose('design', 'Design', true);
   const testing = flags.testing ?? await choose('testing-engine', 'Testing engine');
   const uiDriver = flags.uiDriver ?? await choose('ui-driver', 'UI driver', true);
-  return { ...flags, platform, methodology, design, testing: testing as ProfileFlags['testing'], uiDriver };
+  const addons = flags.addons ?? assertNotCancelled(await p.multiselect({
+    message: 'Add-ons',
+    required: false,
+    options: CATALOG.filter((c) => c.addon && supports(c, platform) &&
+      (!c.requiresNodeInProjectRoot || isNodeStack(resolvedStack)))
+      .map((c) => ({ value: c.id, label: c.name, hint: c.description }))
+  }));
+  return { ...flags, platform, methodology, design, testing: testing as ProfileFlags['testing'], uiDriver, addons };
 }
 
 async function confirmSetup(answers: WizardInitAnswers): Promise<boolean> {
@@ -202,7 +209,8 @@ async function confirmSetup(answers: WizardInitAnswers): Promise<boolean> {
     `Methodology: ${name(profile.methodology)}`,
     `Design: ${name(profile.design)}`,
     `Testing: ${name(profile.testing)}`,
-    `UI driver: ${name(profile.uiDriver)}`
+    `UI driver: ${name(profile.uiDriver)}`,
+    `Add-ons: ${profile.addons?.map(name).join(', ') || 'None'}`
   ].join('\n'), 'Setup');
   return assertNotCancelled(await p.confirm({ message: 'Apply this setup?', initialValue: true }));
 }

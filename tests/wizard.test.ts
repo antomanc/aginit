@@ -9,6 +9,7 @@ import { createCliProgram } from '../src/cli/main.js';
 
 vi.mock('@clack/prompts', () => ({
   select: vi.fn(async (options) => options.initialValue),
+  multiselect: vi.fn(async () => [] as string[]),
   isCancel: () => false,
   cancel: vi.fn(),
   note: vi.fn(),
@@ -86,7 +87,7 @@ describe('Wizard & Interactive Prompts', () => {
       expect(answers.preset).toBe('generic');
       expect(answers.profile).toEqual({
         platform: 'mobile-native', methodology: 'pocock', design: 'impeccable',
-        testing: 'native', uiDriver: 'agent-device'
+        testing: 'native', uiDriver: 'agent-device', addons: []
       });
       const testing = vi.mocked(prompts.select).mock.calls.find(([o]) => o.message === 'Testing engine');
       expect(testing?.[0].options.map((o) => o.value)).toEqual(['native', 'e2e']);
@@ -139,8 +140,18 @@ describe('Wizard & Interactive Prompts', () => {
     const answers = await promptNewProject({ projectName: 'mobile-app' });
     expect(answers.preset).toBe('generic');
     expect(answers.profile).toMatchObject({
-      platform: 'mobile-native', testing: 'native', uiDriver: 'agent-device'
+      platform: 'mobile-native', testing: 'native', uiDriver: 'agent-device', addons: []
     });
+  });
+
+  it('offers compatible registry add-ons and carries the selection into the profile', async () => {
+    vi.mocked(prompts.multiselect).mockResolvedValueOnce(['chrome-devtools-mcp']);
+    const answers = await promptNewProject({
+      projectName: 'web-app', preset: 'web', framework: 'vite', packageManager: 'pnpm'
+    });
+    expect(answers.profile.addons).toEqual(['chrome-devtools-mcp']);
+    const options = vi.mocked(prompts.multiselect).mock.calls.at(-1)?.[0].options;
+    expect(options?.map((option) => option.value)).toContain('context-mode');
   });
 
   it('CLI handles no arguments cleanly in non-interactive mode', async () => {

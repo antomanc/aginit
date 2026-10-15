@@ -16,7 +16,7 @@ npx @antomanc/aginit
 [![npm version](https://img.shields.io/npm/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-<p align="center"><img src="docs/assets/demo.gif" alt="aginit wizard creating a CLI project with AGENTS.md, skills and a Graft codebase graph" width="720"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/antomanc/aginit/main/docs/assets/demo.gif" alt="aginit v2 detecting a web project, configuring capabilities and e2e, and passing every doctor check" width="720"></p>
 
 > **Beta.** Expect flags and defaults to change before 1.0.
 
@@ -81,7 +81,7 @@ aginit update               Update installed skills and rebuild the Graft index
 ```
 
 Bare `aginit` opens the wizard in a terminal and prints help elsewhere. The wizard detects your stack,
-then offers platform, methodology, design, testing and UI driver choices with a setup summary.
+then offers platform, methodology, design, testing, UI driver and optional add-on choices with a setup summary.
 Initializing an existing directory preserves its stack; Node-only tools are hidden for other stacks. Pass any option, or
 `--yes`, to initialize without prompts.
 

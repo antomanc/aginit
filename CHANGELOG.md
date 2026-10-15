@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased (v2 architecture)
+## [0.5.0] - 2026-10-15
 
 ### Added
+
+- A VHS demo of the interactive wizard, capability selection and successful doctor run, embedded in the README for GitHub and npm.
 
 - Capability registry (`src/registry/`). Every skill, tool and test engine is one declarative entry: install steps, doctor checks, AGENTS.md routing row, rebuttals and docs. `init`, `list`, `add`, `remove`, `doctor` and the docs read it. See `docs/adr/0003-capability-registry-and-stack-agnostic-setup.md`.
 - Stack detection (`src/detect/`) for Flutter, Swift, Kotlin/Android, React Native/Expo, web frameworks, Node, Rust, Go and Python, with the host toolchain's commands in AGENTS.md.
@@ -15,7 +17,7 @@
 
 ### Changed
 
-- The interactive wizard uses detected stack defaults and registry choices for platform, methodology, design, testing and UI automation. Short labels and a setup summary make choices easier to review.
+- The interactive wizard uses detected stack defaults and registry choices for platform, methodology, design, testing and UI automation, plus optional registry add-ons. Short labels and a setup summary make choices easier to review.
 
 - AGENTS.md's "AI Capabilities & Skills" list moved to `docs/agents/workflows.md`.
 - A generic preset on an existing Node project defaults to the project's own test runner (`native`) instead of claiming Vitest it never installed.
