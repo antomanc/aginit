@@ -61,7 +61,8 @@
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm audit",
     "check:skills": "node scripts/check-skill-drift.mjs",
     "smoke": "node scripts/smoke-test.mjs",
-    "prepublishOnly": "pnpm check && pnpm smoke"
+    "prepublishOnly": "pnpm check && pnpm smoke",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
