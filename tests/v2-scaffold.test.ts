@@ -256,3 +256,11 @@ describe('AGENTS.md and docs/agents merge safety', () => {
     }
   });
 });
+
+it('adds no placeholder test to a project that already has tests', async () => {
+  fs.mkdirSync(file('tests'));
+  fs.writeFileSync(file('tests/app.test.ts'), "it('works', () => {});\n");
+  fs.writeFileSync(file('package.json'), JSON.stringify({ name: 'has-tests', type: 'module' }));
+  await createProject('has-tests', { ...options, targetDir: dir, preset: 'cli', graft: false });
+  expect(fs.readdirSync(file('tests'))).toEqual(['app.test.ts']);
+});
