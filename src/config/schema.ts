@@ -1,3 +1,5 @@
+import type { CustomCapabilityConfig, Platform, Stack } from '../registry/types.js';
+
 export type PresetType = 'web' | 'cli' | 'generic';
 export type WebFramework = 'none' | 'vite' | 'next' | 'existing';
 export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
@@ -44,6 +46,19 @@ export interface AginitConfig {
   github: {
     ci: boolean;
   };
+  /** Target platform. Missing in pre-v2 configs; detected from the project then. */
+  platform?: Platform;
+  /** Host toolchain. Missing in pre-v2 configs; detected from the project then. */
+  stack?: Stack;
+  /**
+   * Enabled capability ids from the registry (src/registry/catalog.ts).
+   * Missing in pre-v2 configs; inferred from skills.sources and the switches above.
+   */
+  capabilities?: string[];
+  /** Skill repositories added on top of the registry; always enabled unless disabled. */
+  customCapabilities?: CustomCapabilityConfig[];
+  /** Capability ids to keep off, even when a preset or platform default would enable them. */
+  disabledCapabilities?: string[];
 }
 
 // Backward-compatible alias

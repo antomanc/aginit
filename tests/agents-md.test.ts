@@ -90,7 +90,8 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('# demo-cli\n\nAI-first cli project configured');
     expect(md).toContain('## Core Invariants\n- Keep changes small');
     expect(md).toContain('\n\n## Essential Commands');
-    expect(md).toContain('\n\n## AI Capabilities & Skills');
+    expect(md).toContain('\n\n<!-- aginit:start -->');
+    expect(md).toContain('\n\n## Task Routing');
     expect(md).toContain('\n\n## Bootstrap & First Session');
     expect(md).not.toContain('\n\n\n');
     expect(md.endsWith('\n')).toBe(true);

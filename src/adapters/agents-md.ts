@@ -3,97 +3,147 @@ import { fileExists, readTextFile, safeWriteFile } from '../utils/fs.js';
 import { AginitConfig } from '../config/schema.js';
 import { readPackageManifest } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
-import { getPackageManagerAdapter } from './package-manager.js';
+import { CapabilityDescriptor, isNodeStack, MicroDoc } from '../registry/index.js';
+import {
+  microDocPath,
+  plannedMicroDocs,
+  projectProfile,
+  ProjectProfile,
+  resolvePlatformStack
+} from './agent-docs.js';
+
+const PLATFORM_LABELS: Record<string, string> = {
+  web: 'Web',
+  'mobile-native': 'Native mobile',
+  'mobile-rn': 'React Native',
+  backend: 'Backend',
+  cli: 'CLI'
+};
+
+export const AGINIT_BLOCK_START = '<!-- aginit:start -->';
+export const AGINIT_BLOCK_END = '<!-- aginit:end -->';
+
+const BOOTSTRAP_SECTION = [
+  '## Bootstrap & First Session',
+  'When the user asks to "bootstrap this project" or kicks off a new initiative:',
+  '1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.',
+  '2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).',
+  '3. Plan in small verifiable increments and implement test-first using installed skills.'
+];
+
+/** Placeholder scripts used when AGENTS.md is rendered without a package.json to read. */
+function presetScripts(config: AginitConfig): Record<string, string> {
+  return config.preset === 'generic'
+    ? { test: 'vitest run' }
+    : { build: '', typecheck: '', test: '', dev: '', 'test:e2e': '' };
+}
+
+const table = (head: [string, string], rows: Array<[string, string]>) => [
+  `| ${head[0]} | ${head[1]} |`,
+  '| --- | --- |',
+  ...rows.map(([a, b]) => `| ${a} | ${b} |`)
+];
+
+/**
+ * The part of AGENTS.md aginit keeps in sync with the active capabilities:
+ * guardrails, the Task Routing table and the Anti-Rationalization table.
+ */
+export function renderAgentsBlock(
+  config: AginitConfig,
+  profile: ProjectProfile,
+  docs: MicroDoc[] = plannedMicroDocs(profile)
+): string {
+  const hasSkills = config.skills.sources.length > 0;
+  const routing: Array<[string, string]> = [
+    ['Product intent, scope, target users', '`PRODUCT.md`']
+  ];
+  const order = ['design', 'codebase-graph'];
+  const rank = (c: CapabilityDescriptor) => (order.indexOf(c.category) + order.length + 1) % (order.length + 1);
+  const direct = profile.active.filter((c) => c.routing).sort((a, b) => rank(a) - rank(b));
+  const routeOf = (c: CapabilityDescriptor): [string, string] => [c.routing!.task, c.routing!.read];
+  // Design and codebase rows lead, discipline rows follow the micro-docs.
+  routing.push(...direct.filter((c) => c.category !== 'discipline').map(routeOf));
+  if (docs.includes('testing'))
+    routing.push(['Automated unit & E2E testing', '`' + microDocPath('testing') + '`']);
+  if (docs.includes('ui-verification'))
+    routing.push(['Live UI verification (Web / Mobile)', '`' + microDocPath('ui-verification') + '`']);
+  if (docs.includes('workflows'))
+    routing.push(['Engineering workflow & skills', '`' + microDocPath('workflows') + '`']);
+  routing.push(...direct.filter((c) => c.category === 'discipline').map(routeOf));
+
+  const rebuttals = new Map<string, string>();
+  for (const capability of profile.active)
+    for (const { excuse, rule } of capability.rebuttals ?? [])
+      if (!rebuttals.has(excuse)) rebuttals.set(excuse, rule);
+  const unitExcuse = 'Unit tests pass, so the feature works.';
+  if (!rebuttals.has(unitExcuse) && profile.active.some((c) => c.category === 'testing-engine'))
+    rebuttals.set(
+      unitExcuse,
+      'Insufficient. Unit tests do not verify wiring or rendering. Exercise the feature end to end ' +
+        `(${profile.commands.e2e && profile.has('playwright') ? '`' + profile.commands.e2e + '`' : 'integration or smoke run'}) before marking complete.`
+    );
+
+  const lines = [
+    AGINIT_BLOCK_START,
+    ...(profile.has('karpathy-guidelines')
+      ? [
+          '## Guardrails (karpathy-guidelines)',
+          '- **Think before coding**: state assumptions and trade-offs; ask instead of guessing.',
+          '- **Simplicity first**: minimum code that solves the problem; no speculative features or abstractions.',
+          '- **Surgical changes**: touch only what the task needs; no silent scope creep or drive-by refactors.',
+          '- **Goal-driven execution**: define a verifiable success check first, then loop until it passes.',
+          ''
+        ]
+      : []),
+    '## Task Routing',
+    hasSkills
+      ? config.agents.claudeCode === false
+        ? 'Load only what the task needs. Skills live in `.agents/skills/`.'
+        : 'Load only what the task needs. Skills live in `.agents/skills/` (linked into `.claude/skills/` for Claude Code).'
+      : 'Load only what the task needs. Skills installation is disabled in this configuration.',
+    '',
+    ...table(['Task', 'Read / Use'], routing),
+    ...(rebuttals.size
+      ? ['', '## Anti-Rationalization', ...table(['Excuse', 'Rule'], [...rebuttals].map(([e, r]) => [`"${e}"`, r]))]
+      : []),
+    AGINIT_BLOCK_END
+  ];
+  return lines.join('\n');
+}
 
 export function generateAgentsMarkdown(
   config: AginitConfig,
-  scripts?: Record<string, string>
+  scripts?: Record<string, string>,
+  targetDir?: string
 ): string {
-  const commands =
-    scripts ??
-    (config.preset === 'generic'
-      ? { test: 'vitest run' }
-      : { build: '', typecheck: '', test: '', dev: '', 'test:e2e': '' });
-  const hasCommand = (name: string) => Object.hasOwn(commands, name);
-  const isWeb = config.preset === 'web';
-  const hasBrowser = isWeb && config.browser.playwright;
-  const hasVisualAgent = isWeb && config.browser.visualAgent;
+  const resolved = resolvePlatformStack(config, targetDir);
+  const node = isNodeStack(resolved.stack);
+  const profile = projectProfile(config, {
+    targetDir,
+    scripts: node ? (scripts ?? presetScripts(config)) : undefined
+  });
+  const { commands } = profile;
   const pm = config.packageManager || 'pnpm';
-  const pmAdapter = getPackageManagerAdapter(pm);
+  const isWeb = profile.platform === 'web';
+  const commandLines = [
+    node ? `- Package Manager: \`${pm}\`` : undefined,
+    commands.dev && isWeb && config.framework && config.framework !== 'none'
+      ? `- Dev Server: \`${commands.dev}\``
+      : undefined,
+    commands.build ? `- Build: \`${commands.build}\`` : undefined,
+    commands.typecheck ? `- Typecheck: \`${commands.typecheck}\`` : undefined,
+    commands.lint ? `- Lint: \`${commands.lint}\`` : undefined,
+    commands.test ? `- Test: \`${commands.test}\`` : undefined,
+    commands.unitTest ? `- Unit Test: \`${commands.unitTest}\`` : undefined,
+    commands.e2e && profile.has('playwright')
+      ? `- Test (E2E / Browser): \`${commands.e2e}\``
+      : undefined
+  ].filter((line): line is string => line !== undefined);
 
-  let devCommand = '';
-  if (hasCommand('dev') && isWeb && config.framework && config.framework !== 'none') {
-    devCommand = `- Dev Server: \`${pmAdapter.runCmd('dev')}\``;
-  }
-
-  let testE2E = '';
-  if (hasBrowser && hasCommand('test:e2e')) {
-    testE2E = `- Test (E2E / Browser): \`${pmAdapter.runCmd('test:e2e')}\``;
-  }
-
-  // A source with an empty skill list (or `*`) installs every skill it ships.
-  const skillInstalled = (skill: string) =>
-    config.skills.sources.some(
-      (source) =>
-        source.skills.length === 0 || source.skills.includes('*') || source.skills.includes(skill)
-    );
-  const mattSkills = (() => {
-    const source = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
-    if (!source) return [];
-    return source.skills.length ? source.skills : ['*'];
-  })();
-  const hasSkills = config.skills.sources.length > 0;
-
-  const specSkillNames = ['to-spec', 'to-tickets', 'implement-spec'];
-  let engineeringCapability = '';
-  if (mattSkills.includes('*')) {
-    engineeringCapability =
-      '- **Engineering**: the full Matt Pocock skill set installed in `.agents/skills/` — start with `ask-matt` to route to the right one.';
-  } else if (mattSkills.length) {
-    const engineering = mattSkills.filter((skill) => !specSkillNames.includes(skill));
-    if (engineering.length) {
-      engineeringCapability = `- **Engineering**: ${engineering.map((skill) => '`' + skill + '`').join(', ')}`;
-    }
-  }
-
-  let proseCapability = '';
-  if (skillInstalled('humanizer')) {
-    proseCapability =
-      '- **Prose & Copy**: Use `humanizer` skill to eliminate AI writing tells and refine documentation.';
-  }
-
-  let simplicityCapability = '';
-  if (skillInstalled('ponytail')) {
-    simplicityCapability =
-      '- **Simplicity**: Use `ponytail` skill for the smallest complete change and to cut over-engineering.';
-  }
-
-  let uiCapability = '';
-  if (isWeb && skillInstalled('impeccable')) {
-    uiCapability =
-      '- **UI & Design**: Use `impeccable` skill for frontend polish, design critique, and token craft.';
-  }
-
-  let browserCapability = '';
-  if (hasVisualAgent && skillInstalled('agent-browser')) {
-    browserCapability =
-      '- **Browser Verification**: Use `agent-browser` skill for interactive inspection and visual QA.';
-  }
-
-  let graftCapability = '';
-  if (config.codebase.graft) {
-    graftCapability =
-      '- **Codebase Graph**: Use `graft ask "<query>" --source` or `graft map` for orientation before raw grep.';
-  }
-
-  const specCapability = skillInstalled('to-spec')
-    ? '- **Spec & Tickets Workflow**: `to-spec`, `to-tickets`, `implement-spec`'
-    : '';
-
-  const sections: Array<string | undefined> = [
+  const sections: string[] = [
     `# ${config.name}`,
     '',
-    `AI-first ${config.preset} project configured with \`aginit\`.`,
+    `AI-first ${config.preset} project configured with \`aginit\` (${PLATFORM_LABELS[profile.platform]}, ${profile.stack}).`,
     '',
     '## Core Invariants',
     '- Keep changes small, focused, and test-verified.',
@@ -101,80 +151,53 @@ export function generateAgentsMarkdown(
     '- Never commit broken builds, failed typechecks, or unverified changes.',
     '',
     '## Essential Commands',
-    `- Package Manager: \`${pm}\``,
-    devCommand || undefined,
-    hasCommand('build') ? `- Build: \`${pmAdapter.runCmd('build')}\`` : undefined,
-    hasCommand('typecheck') ? `- Typecheck: \`${pmAdapter.runCmd('typecheck')}\`` : undefined,
-    hasCommand('test') ? `- Test: \`${pmAdapter.runCmd('test')}\`` : undefined,
-    hasCommand('test:unit') ? `- Unit Test: \`${pmAdapter.runCmd('test:unit')}\`` : undefined,
-    testE2E || undefined,
+    ...(commandLines.length ? commandLines : ['- Add the build and test commands here once they exist.']),
     '',
-    '## AI Capabilities & Skills',
-    hasSkills
-      ? config.agents.claudeCode === false
-        ? 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex):'
-        : 'Configured skills install into `.agents/skills/` (shared by Antigravity and Codex, linked into `.claude/skills/` for Claude Code):'
-      : 'Skills installation is disabled in this configuration.',
-    engineeringCapability || undefined,
-    proseCapability || undefined,
-    simplicityCapability || undefined,
-    specCapability || undefined,
-    uiCapability || undefined,
-    browserCapability || undefined,
-    graftCapability || undefined,
+    renderAgentsBlock(config, profile),
     '',
-    '## Bootstrap & First Session',
-    'When the user asks to "bootstrap this project" or kicks off a new initiative:',
-    '1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.',
-    '2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).',
-    '3. Plan in small verifiable increments and implement test-first using installed skills.',
+    ...BOOTSTRAP_SECTION,
     ''
   ];
+  return sections.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
 
-  // Conditional lines are `undefined` and dropped; `''` entries are the blank
-  // separators between sections and must survive.
-  return (
-    sections
-      .filter((s): s is string => s !== undefined)
-      .join('\n')
-      .trim() + '\n'
-  );
+/** Insert or refresh the aginit block in an existing AGENTS.md, leaving everything else as written. */
+export function mergeAgentsBlock(existing: string, block: string): string {
+  const start = existing.indexOf(AGINIT_BLOCK_START);
+  const end = existing.indexOf(AGINIT_BLOCK_END);
+  if (start !== -1 && end > start)
+    return existing.slice(0, start) + block + existing.slice(end + AGINIT_BLOCK_END.length);
+  // Above Graft's block when there is one, so Graft keeps owning the end of the file.
+  const graft = existing.indexOf('<!-- graft:start -->');
+  if (graft !== -1)
+    return existing.slice(0, graft).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(graft);
+  return existing.trimEnd() + '\n\n' + block + '\n';
 }
 
 export function setupAgentsMarkdown(
   targetDir: string,
   config: AginitConfig,
-  options: { overwrite?: boolean; dryRun?: boolean; silent?: boolean } = {}
+  options: { overwrite?: boolean; dryRun?: boolean; silent?: boolean; docs?: MicroDoc[] } = {}
 ): boolean {
   const { overwrite = false, dryRun = false, silent = false } = options;
   const filePath = path.join(targetDir, 'AGENTS.md');
 
   if (fileExists(filePath) && !overwrite) {
-    // File exists; check if it has the bootstrap guidance. If not, append it conservatively.
     const existing = readTextFile(filePath) || '';
-    if (!existing.includes('## Bootstrap & First Session')) {
-      const addition = [
-        '',
-        '## Bootstrap & First Session',
-        'When the user asks to "bootstrap this project" or kicks off a new initiative:',
-        '1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.',
-        '2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).',
-        '3. Plan in small verifiable increments and implement test-first using installed skills.',
-        ''
-      ].join('\n');
-      safeWriteFile(filePath, existing.trimEnd() + '\n' + addition, {
-        overwrite: true,
-        dryRun,
-        silent
-      });
-      if (!silent) logger.dim('Appended Bootstrap section to existing AGENTS.md');
+    const scripts = readPackageManifest(targetDir)?.scripts;
+    const profile = projectProfile(config, { targetDir, scripts });
+    let updated = mergeAgentsBlock(existing, renderAgentsBlock(config, profile, options.docs));
+    if (!updated.includes('## Bootstrap & First Session'))
+      updated = updated.trimEnd() + '\n\n' + BOOTSTRAP_SECTION.join('\n') + '\n';
+    if (updated === existing) {
+      if (!silent) logger.dim('AGENTS.md is up to date, preserving content.');
       return true;
     }
-    if (!silent) logger.dim('AGENTS.md already exists, preserving content.');
-    return true;
+    if (!silent) logger.dim('Refreshed the aginit section of the existing AGENTS.md');
+    return safeWriteFile(filePath, updated, { overwrite: true, dryRun, silent });
   }
 
-  const content = generateAgentsMarkdown(config, readPackageManifest(targetDir)?.scripts);
+  const content = generateAgentsMarkdown(config, readPackageManifest(targetDir)?.scripts, targetDir);
   return safeWriteFile(filePath, content, { overwrite: true, dryRun, silent });
 }
 

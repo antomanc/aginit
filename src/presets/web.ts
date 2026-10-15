@@ -7,6 +7,7 @@ import { setupBrowserTesting } from '../adapters/browser.js';
 import { setupAdr } from './adr.js';
 import { scaffoldCommand } from '../adapters/package-manager.js';
 import { addTestingDependencies, setupTesting } from './testing.js';
+import { activeIds } from '../registry/index.js';
 
 /** Plain tsc cannot resolve framework virtual modules or single-file components,
  * so those frameworks get their own checker (and the package that provides it). */
@@ -81,7 +82,8 @@ export const webPreset: PresetHandler = {
     const hadVitestScript = Object.values(pkg.scripts || {}).some(
       (script) => typeof script === 'string' && /^vitest(?:\s|$)/.test(script)
     );
-    addTestingDependencies(pkg, config.browser.playwright);
+    const vitest = activeIds(config).has('vitest');
+    addTestingDependencies(pkg, config.browser.playwright, vitest);
     if (fileExists(path.join(targetDir, 'tsconfig.json'))) {
       if (pkg.scripts.typecheck === undefined) {
         const { script, checker } = typecheckFor(pkg, targetDir, fresh && framework === 'next');
@@ -124,7 +126,7 @@ export const webPreset: PresetHandler = {
         'allowBuilds:\n  esbuild: true\n',
         { dryRun, silent }
       );
-    setupTesting(ctx, hadVitestScript);
+    if (vitest) setupTesting(ctx, hadVitestScript);
     if (config.browser.playwright) setupBrowserTesting(targetDir, { dryRun, silent });
     if (config.docs.adr) setupAdr(targetDir, { dryRun, silent });
   }

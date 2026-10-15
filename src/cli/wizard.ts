@@ -3,6 +3,10 @@ import pc from 'picocolors';
 import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
 import { validateProjectName, readProjectConfig } from '../config/validation.js';
 import { detectPackageManager } from '../adapters/package-manager.js';
+import { detectProject } from '../detect/index.js';
+import { presetPlatform } from '../config/defaults.js';
+import { CATALOG, PLATFORMS, defaultCapabilities, isNodeStack, supports } from '../registry/index.js';
+import type { CapabilityCategory, Platform, ProfileFlags, Stack } from '../registry/index.js';
 import { createProject } from './new.js';
 import { initCurrentDirectory } from './init.js';
 
@@ -23,12 +27,14 @@ export interface WizardNewAnswers {
   preset: PresetType;
   framework: WebFramework;
   packageManager: PackageManager;
+  profile: ProfileFlags;
 }
 
 export interface WizardInitAnswers {
   preset: PresetType;
   framework: WebFramework;
   packageManager: PackageManager;
+  profile: ProfileFlags;
 }
 
 export async function promptNewProject(defaults?: {
@@ -36,6 +42,7 @@ export async function promptNewProject(defaults?: {
   preset?: PresetType;
   framework?: WebFramework;
   packageManager?: PackageManager;
+  profile?: ProfileFlags;
 }): Promise<WizardNewAnswers> {
   let projectName: string = defaults?.projectName || '';
   if (!projectName) {
@@ -54,27 +61,10 @@ export async function promptNewProject(defaults?: {
     projectName = String(assertNotCancelled(res)).trim();
   }
 
-  let preset = defaults?.preset;
-  if (!preset) {
-    const res = await p.select({
-      message: 'Select a project preset:',
-      initialValue: 'web',
-      options: [
-        {
-          value: 'web',
-          label: 'Web Application',
-          hint: 'React, Next.js, Vite, or agnostic + Vitest/Playwright'
-        },
-        { value: 'cli', label: 'CLI Tool', hint: 'TypeScript, Commander, Picocolors + Vitest' },
-        {
-          value: 'generic',
-          label: 'Generic / Existing Codebase',
-          hint: 'Codebase graph + agent intake guide'
-        }
-      ]
-    });
-    preset = assertNotCancelled(res) as PresetType;
-  }
+  const platform = defaults?.profile?.platform ??
+    await promptPlatform(presetPlatform(defaults?.preset ?? 'web'));
+  const preset = defaults?.preset ??
+    (platform === 'web' ? 'web' : platform === 'cli' ? 'cli' : 'generic');
 
   let framework: WebFramework = defaults?.framework || 'none';
   if (preset === 'web' && defaults?.framework === undefined) {
@@ -84,8 +74,8 @@ export async function promptNewProject(defaults?: {
       options: [
         {
           value: 'none',
-          label: 'Framework-agnostic (Recommended)',
-          hint: 'Clean TypeScript + Vitest, zero bundler lock-in'
+          label: 'None',
+          hint: 'TypeScript baseline'
         },
         {
           value: 'vite',
@@ -100,28 +90,17 @@ export async function promptNewProject(defaults?: {
 
   let packageManager = defaults?.packageManager;
   if (!packageManager) {
-    const res = await p.select({
-      message: 'Select package manager:',
-      initialValue: 'pnpm',
-      options: [
-        {
-          value: 'pnpm',
-          label: 'pnpm (Recommended)',
-          hint: 'Fast, disk-efficient & compliant workspace'
-        },
-        { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
-        { value: 'yarn', label: 'yarn', hint: 'Yarn package manager' },
-        { value: 'bun', label: 'bun', hint: 'Fast all-in-one JavaScript runtime & toolkit' }
-      ]
-    });
-    packageManager = assertNotCancelled(res) as PackageManager;
+    packageManager = platform === 'mobile-native' ? 'pnpm' : await promptPackageManager();
   }
 
+  const profile = await promptProfile(platform, 'unknown', framework, true,
+    { ...defaults?.profile, platform });
   return {
     projectName,
     preset,
     framework,
-    packageManager
+    packageManager,
+    profile
   };
 }
 
@@ -130,72 +109,110 @@ export async function promptInitProject(defaults?: {
   preset?: PresetType;
   framework?: WebFramework;
   packageManager?: PackageManager;
+  profile?: ProfileFlags;
 }): Promise<WizardInitAnswers> {
   const targetDir = defaults?.targetDir || process.cwd();
+  const detected = detectProject(targetDir);
+  const preset = defaults?.preset ?? 'generic';
+  const framework = defaults?.framework ?? 'existing';
+  const platform =
+    defaults?.profile?.platform ??
+    (preset !== 'generic' ? presetPlatform(preset) : detected.platform ?? 'cli');
+  const stack = detected.stack;
+  p.note(
+    stack === 'unknown'
+      ? 'No stack detected. Choose a platform below.'
+      : `Detected ${stack}. Existing project files are preserved.`,
+    'Project'
+  );
+  const profile = await promptProfile(
+    platform, stack, framework,
+    preset !== 'generic' || detected.stack === 'unknown',
+    defaults?.profile
+  );
+  const packageManager =
+    defaults?.packageManager ?? detectPackageManager(targetDir) ??
+    (isNodeStack(stack) || (stack === 'unknown' && profile.platform !== 'mobile-native')
+      ? await promptPackageManager()
+      : 'pnpm');
+  return { preset, framework, packageManager, profile };
+}
 
-  let preset = defaults?.preset;
-  if (!preset) {
-    const res = await p.select({
-      message: 'Select project preset to configure in this directory:',
-      initialValue: 'web',
-      options: [
-        { value: 'web', label: 'Web Application', hint: 'Impeccable UI, agent-browser, Vitest' },
-        { value: 'cli', label: 'CLI Tool', hint: 'TypeScript, Vitest' },
-        {
-          value: 'generic',
-          label: 'Generic Repository',
-          hint: 'Codebase graph + agent intake guide'
-        }
-      ]
-    });
-    preset = assertNotCancelled(res) as PresetType;
-  }
+async function promptPackageManager(): Promise<PackageManager> {
+  return assertNotCancelled(await p.select({
+    message: 'Package manager',
+    initialValue: 'pnpm',
+    options: ['pnpm', 'npm', 'yarn', 'bun'].map((value) => ({ value, label: value }))
+  })) as PackageManager;
+}
 
-  let framework: WebFramework = defaults?.framework || 'existing';
-  if (preset === 'web' && defaults?.framework === undefined) {
-    const res = await p.select({
-      message: 'Select web framework setting:',
-      initialValue: 'existing',
-      options: [
-        {
-          value: 'existing',
-          label: 'Existing Web Setup (Recommended)',
-          hint: 'Preserve existing bundler and dependencies'
-        },
-        { value: 'none', label: 'Framework-agnostic', hint: 'Baseline TypeScript' },
-        { value: 'vite', label: 'Vite', hint: 'Vite React setup' },
-        { value: 'next', label: 'Next.js', hint: 'Next.js setup' }
-      ]
-    });
-    framework = assertNotCancelled(res) as WebFramework;
-  }
-
-  // Auto-detect and preserve existing package manager without prompting
-  let packageManager = defaults?.packageManager;
-  if (!packageManager) {
-    const detected = detectPackageManager(targetDir);
-    if (detected) {
-      packageManager = detected;
-    } else {
-      const res = await p.select({
-        message: 'Select package manager for this project:',
-        initialValue: 'pnpm',
-        options: [
-          { value: 'pnpm', label: 'pnpm (Recommended)', hint: 'Fast, disk-efficient workspace' },
-          { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
-          { value: 'yarn', label: 'yarn', hint: 'Yarn package manager' },
-          { value: 'bun', label: 'bun', hint: 'Fast runtime and package manager' }
-        ]
-      });
-      packageManager = assertNotCancelled(res) as PackageManager;
-    }
-  }
-
-  return {
-    preset,
-    framework,
-    packageManager
+async function promptPlatform(initialValue: Platform): Promise<Platform> {
+  const labels: Record<Platform, string> = {
+    web: 'Web',
+    'mobile-native': 'Native mobile',
+    'mobile-rn': 'React Native / Expo',
+    backend: 'Backend',
+    cli: 'CLI / library'
   };
+  return assertNotCancelled(await p.select({
+    message: 'Platform',
+    initialValue,
+    options: PLATFORMS.map((value) => ({ value, label: labels[value] }))
+  }));
+}
+
+async function promptProfile(
+  initialPlatform: Platform,
+  stack: Stack,
+  framework: WebFramework,
+  harness: boolean,
+  flags: ProfileFlags = {}
+): Promise<ProfileFlags> {
+  const platform = flags.platform ?? await promptPlatform(initialPlatform);
+  const resolvedStack = stack === 'unknown' && platform !== 'mobile-native' ? 'node' : stack;
+  const defaults = defaultCapabilities({ platform, stack: resolvedStack, framework, harness });
+  const choose = async (category: CapabilityCategory, message: string, allowNone = false) => {
+    const entries = CATALOG.filter((c) =>
+      c.category === category && !c.addon && supports(c, platform) &&
+      (!c.requiresNodeInProjectRoot || isNodeStack(resolvedStack))
+    );
+    return assertNotCancelled(await p.select({
+      message,
+      initialValue:
+        [...defaults].reverse().find((id) => entries.some((c) => c.id === id)) ??
+        (allowNone ? 'none' : entries[0]?.id),
+      options: [
+        ...entries.map((c) => ({ value: c.id, label: c.name, hint: c.description })),
+        ...(allowNone ? [{ value: 'none', label: 'None' }] : [])
+      ]
+    }));
+  };
+  const methodology = flags.methodology ?? await choose('methodology', 'Methodology');
+  const design = flags.design ?? await choose('design', 'Design', true);
+  const testing = flags.testing ?? await choose('testing-engine', 'Testing engine');
+  const uiDriver = flags.uiDriver ?? await choose('ui-driver', 'UI driver', true);
+  const addons = flags.addons ?? assertNotCancelled(await p.multiselect({
+    message: 'Add-ons',
+    required: false,
+    options: CATALOG.filter((c) => c.addon && supports(c, platform) &&
+      (!c.requiresNodeInProjectRoot || isNodeStack(resolvedStack)))
+      .map((c) => ({ value: c.id, label: c.name, hint: c.description }))
+  }));
+  return { ...flags, platform, methodology, design, testing: testing as ProfileFlags['testing'], uiDriver, addons };
+}
+
+async function confirmSetup(answers: WizardInitAnswers): Promise<boolean> {
+  const profile = answers.profile;
+  const name = (id: string | undefined) => CATALOG.find((c) => c.id === id)?.name ?? id;
+  p.note([
+    `Platform: ${profile.platform}`,
+    `Methodology: ${name(profile.methodology)}`,
+    `Design: ${name(profile.design)}`,
+    `Testing: ${name(profile.testing)}`,
+    `UI driver: ${name(profile.uiDriver)}`,
+    `Add-ons: ${profile.addons?.map(name).join(', ') || 'None'}`
+  ].join('\n'), 'Setup');
+  return assertNotCancelled(await p.confirm({ message: 'Apply this setup?', initialValue: true }));
 }
 
 export async function runInteractiveWizard(): Promise<void> {
@@ -204,16 +221,16 @@ export async function runInteractiveWizard(): Promise<void> {
   const action = assertNotCancelled(
     await p.select({
       message: 'What would you like to do?',
-      initialValue: 'new',
+      initialValue: detectProject(process.cwd()).platform ? 'init' : 'new',
       options: [
         {
           value: 'new',
-          label: 'Create a brand new AI-first project',
+          label: 'New project',
           hint: 'Scaffold in a new directory'
         },
         {
           value: 'init',
-          label: 'Initialize AI capabilities in current directory',
+          label: 'Current directory',
           hint: 'Add AGENTS.md, skills & Graft safely'
         }
       ]
@@ -223,11 +240,16 @@ export async function runInteractiveWizard(): Promise<void> {
   let complete: boolean;
   if (action === 'new') {
     const answers = await promptNewProject();
+    if (!(await confirmSetup(answers))) {
+      p.outro('Setup cancelled.');
+      return;
+    }
     p.outro(pc.cyan(`Scaffolding "${answers.projectName}"...`));
     complete = await createProject(answers.projectName, {
       preset: answers.preset,
       framework: answers.framework,
-      packageManager: answers.packageManager
+      packageManager: answers.packageManager,
+      profile: answers.profile
     });
   } else {
     const saved = readProjectConfig(process.cwd());
@@ -236,11 +258,16 @@ export async function runInteractiveWizard(): Promise<void> {
       complete = await initCurrentDirectory();
     } else {
       const answers = await promptInitProject();
+      if (!(await confirmSetup(answers))) {
+        p.outro('Setup cancelled.');
+        return;
+      }
       p.outro(pc.cyan('Configuring current directory...'));
       complete = await initCurrentDirectory({
         preset: answers.preset,
         framework: answers.framework,
-        packageManager: answers.packageManager
+        packageManager: answers.packageManager,
+        profile: answers.profile
       });
     }
   }

@@ -1,17 +1,24 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { safeWriteFile, fileExists } from '../utils/fs.js';
 import { PresetContext } from './types.js';
 
 export const VITEST_VERSION = '^4.1.11';
-export function addTestingDependencies(pkg: Record<string, any>, playwright = false): void {
+export function addTestingDependencies(
+  pkg: Record<string, any>,
+  playwright = false,
+  vitest = true
+): void {
   pkg.scripts ??= {};
   pkg.devDependencies ??= {};
-  if (!pkg.dependencies?.vitest && !pkg.devDependencies.vitest)
-    pkg.devDependencies.vitest = VITEST_VERSION;
-  const customTest = pkg.scripts.test && !/^vitest(?:\s|$)/.test(pkg.scripts.test);
-  const testScript = customTest ? 'test:unit' : 'test';
-  pkg.scripts[testScript] ??= 'vitest run';
-  pkg.scripts[customTest ? 'test:unit:watch' : 'test:watch'] ??= 'vitest';
+  if (vitest) {
+    if (!pkg.dependencies?.vitest && !pkg.devDependencies.vitest)
+      pkg.devDependencies.vitest = VITEST_VERSION;
+    const customTest = pkg.scripts.test && !/^vitest(?:\s|$)/.test(pkg.scripts.test);
+    const testScript = customTest ? 'test:unit' : 'test';
+    pkg.scripts[testScript] ??= 'vitest run';
+    pkg.scripts[customTest ? 'test:unit:watch' : 'test:watch'] ??= 'vitest';
+  }
   if (playwright) {
     pkg.scripts['test:e2e'] ??= 'playwright test';
     if (!pkg.dependencies?.['@playwright/test'] && !pkg.devDependencies['@playwright/test'])
@@ -39,9 +46,19 @@ export function setupTesting(ctx: PresetContext, preserveViteTestConfig = false)
       `import { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  test: { include: ['tests/**/*.test.{js,ts}'] }\n});\n`,
       { dryRun, silent }
     );
-  safeWriteFile(
-    path.join(targetDir, 'tests', 'aginit.test.js'),
-    `import { it, expect } from 'vitest';
+  // A project that already has tests needs no placeholder.
+  let hasTests = false;
+  try {
+    hasTests = fs
+      .readdirSync(path.join(targetDir, 'tests'))
+      .some((name) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(name) && name !== 'aginit.test.js');
+  } catch {
+    // no tests/ directory yet
+  }
+  if (!hasTests)
+    safeWriteFile(
+      path.join(targetDir, 'tests', 'aginit.test.js'),
+      `import { it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 // Starter harness: add application behavior tests as the project takes shape.
@@ -51,6 +68,6 @@ it('has a valid project manifest', () => {
   expect(pkg.name.length).toBeGreaterThan(0);
 });
 `,
-    { dryRun, silent }
-  );
+      { dryRun, silent }
+    );
 }

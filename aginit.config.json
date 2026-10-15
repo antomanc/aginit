@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "name": "aginit",
+  "name": "@antomanc/aginit",
   "preset": "cli",
   "packageManager": "pnpm",
   "agents": {
@@ -43,11 +43,21 @@
       },
       {
         "package": "blader/humanizer",
-        "skills": ["humanizer"]
+        "skills": [
+          "humanizer"
+        ]
       },
       {
         "package": "dietrichgebert/ponytail",
-        "skills": ["ponytail"]
+        "skills": [
+          "ponytail"
+        ]
+      },
+      {
+        "package": "multica-ai/andrej-karpathy-skills",
+        "skills": [
+          "karpathy-guidelines"
+        ]
       }
     ]
   },
@@ -63,5 +73,15 @@
   },
   "github": {
     "ci": true
-  }
+  },
+  "platform": "cli",
+  "stack": "node",
+  "capabilities": [
+    "graft",
+    "pocock",
+    "ponytail",
+    "humanizer",
+    "vitest",
+    "karpathy-guidelines"
+  ]
 }

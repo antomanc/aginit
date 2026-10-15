@@ -14,3 +14,8 @@ export * from './cli/new.js';
 export * from './cli/init.js';
 export * from './cli/doctor.js';
 export * from './cli/wizard.js';
+export * from './registry/index.js';
+export * from './detect/index.js';
+export * from './adapters/agent-docs.js';
+export * from './adapters/e2e.js';
+export * from './cli/capabilities.js';

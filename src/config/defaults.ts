@@ -5,199 +5,77 @@ import {
   PackageManager,
   SkillSourceConfig
 } from './schema.js';
+import {
+  applyResolvedProfile,
+  isNodeStack,
+  MATT_POCOCK_SKILLS,
+  Platform,
+  ProfileFlags,
+  resolveCapabilities,
+  Stack
+} from '../registry/index.js';
+
+export { MATT_POCOCK_SKILLS };
 
 export interface DefaultConfigOptions {
   framework?: WebFramework;
   packageManager?: PackageManager;
+  /** Defaults to the preset's platform (generic: cli). */
+  platform?: Platform;
+  /** Defaults to node: every preset scaffolds a Node project unless a stack is detected. */
+  stack?: Stack;
+  flags?: ProfileFlags;
+  /** Skip skill sources (`--no-skills`). */
+  skills?: boolean;
+  /** false when the preset will not scaffold a Vitest harness. */
+  harness?: boolean;
+}
+
+export function presetPlatform(preset: PresetType): Platform {
+  return preset === 'web' ? 'web' : 'cli';
 }
 
 /**
- * The stable skill set from mattpocock/skills installed by default:
- * every skill in the `engineering` and `productivity` categories.
- *
- * The `misc` (rarely used) and `in-progress` categories are deliberately
- * excluded. Re-evaluate when the upstream repository reshuffles categories.
+ * A fresh config: the preset's scaffolding settings plus the capabilities the
+ * registry enables for the platform, stack and profile flags.
  */
-export const MATT_POCOCK_SKILLS = [
-  // engineering
-  'ask-matt',
-  'code-review',
-  'codebase-design',
-  'diagnosing-bugs',
-  'domain-modeling',
-  'grill-with-docs',
-  'implement',
-  'implement-spec',
-  'improve-codebase-architecture',
-  'pr',
-  'prototype',
-  'research',
-  'retro',
-  'setup-matt-pocock-skills',
-  'tdd',
-  'to-spec',
-  'to-tickets',
-  'triage',
-  'wayfinder',
-  'wizard',
-  // productivity
-  'grill-me',
-  'grilling',
-  'handoff',
-  'teach',
-  'to-questionnaire',
-  'wait-what',
-  'writing-for-agents'
-] as const;
-
 export function getDefaultConfig(
   name: string,
   preset: PresetType,
   options: DefaultConfigOptions = {}
 ): AginitConfig {
   const packageManager = options.packageManager || 'pnpm';
-
-  switch (preset) {
-    case 'web': {
-      const framework = options.framework || 'none';
-      const hasWebTarget = framework === 'vite' || framework === 'next';
-
-      return {
-        schemaVersion: '1.0.0',
-        name,
-        preset: 'web',
-        framework,
-        packageManager,
-        agents: {
-          primary: 'antigravity',
-          secondary: 'codex',
-          claudeCode: true
-        },
-        skills: {
-          sources: [
-            {
-              package: 'mattpocock/skills',
-              skills: [...MATT_POCOCK_SKILLS]
-            },
-            {
-              package: 'blader/humanizer',
-              skills: ['humanizer']
-            },
-            {
-              package: 'dietrichgebert/ponytail',
-              skills: ['ponytail']
-            },
-            {
-              package: 'pbakaus/impeccable',
-              skills: ['impeccable']
-            },
-            {
-              package: 'vercel-labs/agent-browser',
-              skills: ['agent-browser']
-            }
-          ]
-        },
-        codebase: {
-          graft: true
-        },
-        browser: {
-          visualAgent: true,
-          playwright: hasWebTarget
-        },
-        docs: {
-          adr: true
-        },
-        github: {
-          ci: true
-        }
-      };
-    }
-
-    case 'cli':
-      return {
-        schemaVersion: '1.0.0',
-        name,
-        preset: 'cli',
-        packageManager,
-        agents: {
-          primary: 'antigravity',
-          secondary: 'codex',
-          claudeCode: true
-        },
-        skills: {
-          sources: [
-            {
-              package: 'mattpocock/skills',
-              skills: [...MATT_POCOCK_SKILLS]
-            },
-            {
-              package: 'blader/humanizer',
-              skills: ['humanizer']
-            },
-            {
-              package: 'dietrichgebert/ponytail',
-              skills: ['ponytail']
-            }
-          ]
-        },
-        codebase: {
-          graft: true
-        },
-        browser: {
-          visualAgent: false,
-          playwright: false
-        },
-        docs: {
-          adr: true
-        },
-        github: {
-          ci: true
-        }
-      };
-
-    case 'generic':
-    default:
-      return {
-        schemaVersion: '1.0.0',
-        name,
-        preset: 'generic',
-        packageManager,
-        agents: {
-          primary: 'antigravity',
-          secondary: 'codex',
-          claudeCode: true
-        },
-        skills: {
-          sources: [
-            {
-              package: 'mattpocock/skills',
-              skills: [...MATT_POCOCK_SKILLS]
-            },
-            {
-              package: 'blader/humanizer',
-              skills: ['humanizer']
-            },
-            {
-              package: 'dietrichgebert/ponytail',
-              skills: ['ponytail']
-            }
-          ]
-        },
-        codebase: {
-          graft: true
-        },
-        browser: {
-          visualAgent: false,
-          playwright: false
-        },
-        docs: {
-          adr: true
-        },
-        github: {
-          ci: false
-        }
-      };
-  }
+  const platform = options.platform ?? presetPlatform(preset);
+  const stack = options.stack ?? 'node';
+  const framework = preset === 'web' ? options.framework || 'none' : undefined;
+  const base: AginitConfig = {
+    schemaVersion: '1.0.0',
+    name,
+    preset,
+    ...(framework ? { framework } : {}),
+    // Only Node projects have a package manager; the others use their host toolchain.
+    ...(isNodeStack(stack) ? { packageManager } : {}),
+    platform,
+    stack,
+    agents: {
+      primary: 'antigravity',
+      secondary: 'codex',
+      claudeCode: true
+    },
+    skills: { sources: [] },
+    codebase: { graft: true },
+    browser: { visualAgent: false, playwright: false },
+    docs: { adr: true },
+    github: { ci: preset !== 'generic' }
+  };
+  const profile = resolveCapabilities({
+    platform,
+    stack,
+    framework,
+    harness: options.harness,
+    flags: options.flags
+  });
+  return applyResolvedProfile(base, profile, { skills: options.skills !== false });
 }
 
 /** The skill selections that older versions of aginit wrote as defaults. */

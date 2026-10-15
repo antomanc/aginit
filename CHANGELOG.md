@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.5.0] - 2026-10-15
+
+### Added
+
+- A VHS demo of the interactive wizard, capability selection and successful doctor run, embedded in the README for GitHub and npm.
+
+- Capability registry (`src/registry/`). Every skill, tool and test engine is one declarative entry: install steps, doctor checks, AGENTS.md routing row, rebuttals and docs. `init`, `list`, `add`, `remove`, `doctor` and the docs read it. See `docs/adr/0003-capability-registry-and-stack-agnostic-setup.md`.
+- Stack detection (`src/detect/`) for Flutter, Swift, Kotlin/Android, React Native/Expo, web frameworks, Node, Rust, Go and Python, with the host toolchain's commands in AGENTS.md.
+- Non-JS projects get no root `package.json`, `tsconfig.json` or Vitest files. Node-only tooling is refused for them with a pointer to `--testing e2e` or `native`.
+- New capabilities: Superpowers and `minimal` methodologies, `karpathy-guidelines` (default), agent-device (default UI driver for mobile), Chrome DevTools MCP, BrowserSkill, tester-army/e2e (root for Node projects, isolated `.agents/e2e/` otherwise), context-mode and Worktrunk add-ons.
+- CLI: `--platform`, `--methodology`, `--design`, `--testing`, `--ui-driver`, `--addons`, `--add-skill`, `--without`; `-y, --yes`; `aginit [options]` as a shortcut for `init`; `aginit list`, `aginit add`, `aginit remove`.
+- AGENTS.md gets a managed `<!-- aginit:start -->` block with Karpathy guardrails, a Task Routing table and an Anti-Rationalization table, plus `docs/agents/testing.md`, `ui-verification.md` and `workflows.md`. Existing AGENTS.md content stays as written.
+- Config: optional `platform`, `stack`, `capabilities`, `customCapabilities` and `disabledCapabilities`. Older configs load unchanged and their capabilities are inferred.
+- `aginit doctor` reports one row per active capability (skill files, CLIs, the Graft index).
+
+### Changed
+
+- The interactive wizard uses detected stack defaults and registry choices for platform, methodology, design, testing and UI automation, plus optional registry add-ons. Short labels and a setup summary make choices easier to review.
+
+- AGENTS.md's "AI Capabilities & Skills" list moved to `docs/agents/workflows.md`.
+- A generic preset on an existing Node project defaults to the project's own test runner (`native`) instead of claiming Vitest it never installed.
+
+### Fixed
+
+- Committed Claude helpers resolve Graft at runtime without personal machine paths.
+
+- THIRD_PARTY_NOTICES.md credited humanizer and Impeccable to the wrong authors. It now credits every integration, with licenses checked upstream; a test keeps it in sync with the registry.
+
 ## 0.4.1 — 2026-10-11
 
 ### Fixed
