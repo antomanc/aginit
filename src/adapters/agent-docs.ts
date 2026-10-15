@@ -6,6 +6,7 @@ import { detectProject, projectCommands } from '../detect/index.js';
 import {
   activeCapabilities,
   CapabilityDescriptor,
+  CATALOG,
   e2eDirFor,
   GuideContext,
   MicroDoc,
@@ -101,10 +102,19 @@ function workflowsExtras(profile: ProjectProfile): string[] {
   ];
 }
 
+// Drivers come before the design review that uses them; unit runners before E2E.
+const SECTION_ORDER = ['methodology', 'ui-driver', 'design', 'testing-engine', 'context-guard'];
+const sectionRank = (c: CapabilityDescriptor) => {
+  const category = SECTION_ORDER.indexOf(c.category);
+  const index = CATALOG.indexOf(c);
+  return (category === -1 ? SECTION_ORDER.length : category) * 1000 + (index === -1 ? 999 : index);
+};
+
 /** Markdown for one micro-doc, or null when no active capability contributes to it. */
 export function renderMicroDoc(doc: MicroDoc, profile: ProjectProfile): string | null {
   const sections = profile.active
     .filter((c) => c.guide?.doc === doc)
+    .sort((a, b) => sectionRank(a) - sectionRank(b))
     .map((c) => c.guide!.render(profile));
   const extras = doc === 'workflows' ? workflowsExtras(profile) : [];
   if (sections.length === 0 && extras.length === 0) return null;

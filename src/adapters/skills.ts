@@ -162,3 +162,21 @@ export async function updateSkills(
   });
   return res.ok;
 }
+
+/** Remove skills from every agent through the Skills CLI (`npx skills remove`). */
+export async function removeSkills(
+  targetDir: string,
+  skills: string[],
+  options: { dryRun?: boolean; silent?: boolean } = {}
+): Promise<boolean> {
+  if (skills.length === 0) return true;
+  for (const skill of skills) validateUpstreamArgument(skill, 'skill name');
+  if (!options.silent) logger.dim(`Removing skills: ${skills.join(', ')}...`);
+  const res = await runExecutable('npx', ['-y', 'skills', 'remove', ...skills, '-y'], {
+    cwd: targetDir,
+    dryRun: options.dryRun,
+    silent: true
+  });
+  if (!res.ok) logger.warn(`Failed removing skills: ${res.stderr || res.stdout}`);
+  return res.ok;
+}

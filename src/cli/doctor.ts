@@ -17,7 +17,6 @@ import {
 } from '../adapters/skills.js';
 import { claudeMarkdownImportsAgents } from '../adapters/agents-md.js';
 import {
-  agentBrowserConfigured,
   agentBrowserStubInstalled,
   findUsernsRestriction,
   runAgentBrowserDiagnostics
@@ -25,10 +24,60 @@ import {
 import { readProjectConfig } from '../config/validation.js';
 import { vendoredSkillsExposure } from '../adapters/tool-ignores.js';
 import { logger } from '../utils/logger.js';
+import { activeCapabilities, activeIds, doctorChecks, isNodeStack } from '../registry/index.js';
+import { resolvePlatformStack } from '../adapters/agent-docs.js';
+
+/**
+ * One row per active capability, built from its registry entry: every skill
+ * file it installs, every CLI it drives and any artifact it declares.
+ */
+export async function capabilityChecks(
+  targetDir: string,
+  config: AginitConfig
+): Promise<CheckItem[]> {
+  const items: CheckItem[] = [];
+  for (const capability of activeCapabilities(config)) {
+    const problems: string[] = [];
+    const fixes: string[] = [];
+    const missingSkills: string[] = [];
+    const versions: string[] = [];
+    for (const check of doctorChecks(capability)) {
+      if (check.kind === 'file') {
+        if (fileExists(path.join(targetDir, check.path))) continue;
+        const skill = /^\.agents\/skills\/([^/]+)\/SKILL\.md$/.exec(check.path)?.[1];
+        if (skill) missingSkills.push(skill);
+        else {
+          problems.push(`${check.path} missing`);
+          fixes.push(check.fix);
+        }
+      } else if (!(await commandExists(check.bin))) {
+        problems.push(`${check.bin} CLI not found in PATH`);
+        fixes.push(check.fix);
+      } else {
+        const res = await runExecutable(check.bin, check.args, { silent: true, timeout: 30_000 });
+        versions.push(res.ok && res.stdout ? `${check.bin} ${res.stdout.split('\n')[0]}` : check.bin);
+      }
+    }
+    if (missingSkills.length) {
+      problems.unshift(`skills missing from .agents/skills/: ${missingSkills.join(', ')}`);
+      fixes.unshift('Run `aginit init` to reinstall the configured skills');
+    }
+    items.push({
+      name: `${capability.name} (${capability.category})`,
+      category: 'Capabilities',
+      ok: problems.length === 0,
+      detail: problems.length ? problems.join('; ') : `Ready${versions.length ? ` (${versions.join(', ')})` : ''}`,
+      suggestion: fixes.length ? fixes.join(' · ') : undefined
+    });
+  }
+  return items;
+}
+
+type CheckCategory = 'Environment' | 'AI Tooling' | 'Project Config' | 'Capabilities';
 
 interface CheckItem {
   name: string;
-  category: 'Environment' | 'AI Tooling' | 'Project Config';
+  category: CheckCategory;
   ok: boolean;
   version?: string;
   detail: string;
@@ -88,9 +137,14 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     suggestion: nodeSuggestion
   });
 
-  // 2. Active Package Manager check (pnpm, npm, yarn, or bun)
-  const pmRes = await runExecutable(activePm, ['-v'], { silent: true });
-  checks.push({
+  // 2. Active Package Manager check (pnpm, npm, yarn, or bun); none for non-Node stacks
+  const { stack, platform } = projectConfig
+    ? resolvePlatformStack(projectConfig, targetDir)
+    : { stack: 'node' as const, platform: null };
+  const pmRes = isNodeStack(stack)
+    ? await runExecutable(activePm, ['-v'], { silent: true })
+    : null;
+  if (pmRes) checks.push({
     name: `${activePm} package manager`,
     category: 'Environment',
     ok: pmRes.ok,
@@ -133,22 +187,6 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
         : undefined
   });
 
-  // 4. Graft CLI check
-  const graftExists = await commandExists('graft');
-  let graftVersion = '';
-  if (graftExists) {
-    const gv = await runExecutable('graft', ['--version'], { silent: true });
-    graftVersion = gv.stdout;
-  }
-  checks.push({
-    name: 'Graft codebase graph CLI',
-    category: 'AI Tooling',
-    ok: graftExists,
-    version: graftVersion,
-    detail: graftExists ? `Installed globally (${graftVersion})` : 'Graft CLI not found in PATH',
-    suggestion: graftExists ? undefined : 'Install Graft: `npm install -g @nanonets/graft`'
-  });
-
   // 5. Codex CLI check
   const codexExists = await commandExists('codex');
   checks.push({
@@ -176,7 +214,7 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     category: 'Project Config',
     ok: !!projectConfig,
     detail: projectConfig
-      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), pm: ${activePm}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}${claudeCodeEnabled(projectConfig) ? '/claude-code' : ''}`
+      ? `Preset: "${projectConfig.preset}" (v${projectConfig.schemaVersion || '1.0.0'}), platform: ${platform} (${stack})${pmRes ? `, pm: ${activePm}` : ''}, agents: ${projectConfig.agents.primary}/${projectConfig.agents.secondary}${claudeCodeEnabled(projectConfig) ? '/claude-code' : ''}`
       : configError
         ? `Invalid configuration: ${configError}`
         : 'No aginit.config.json found in current directory',
@@ -290,47 +328,29 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
     });
   }
 
+  // 10. Registry: each active capability's checks (skill files, CLIs, artifacts)
+  if (projectConfig !== null) checks.push(...(await capabilityChecks(targetDir, projectConfig)));
+
   // 10. agent-browser runtime (only when the project ships the skill)
   const agentBrowserWanted =
     projectConfig !== null &&
-    (agentBrowserConfigured(projectConfig.skills.sources) || agentBrowserStubInstalled(targetDir));
-  if (agentBrowserWanted) {
-    const abExists = await commandExists('agent-browser');
-    let abVersion = '';
-    if (abExists) {
-      const av = await runExecutable('agent-browser', ['--version'], { silent: true });
-      abVersion = av.ok ? av.stdout : '';
-    }
-    checks.push({
-      name: 'agent-browser CLI',
-      category: 'AI Tooling',
-      ok: abExists,
-      version: abVersion,
-      detail: abExists
-        ? `Installed globally (${abVersion || 'version unknown'})`
-        : 'agent-browser skill is installed but the CLI is not in PATH',
-      suggestion: abExists
-        ? undefined
-        : 'Install the runtime: `npm i -g agent-browser && agent-browser install`'
-    });
-
-    if (abExists) {
-      const diagnostics = await runAgentBrowserDiagnostics();
-      if (diagnostics !== null) {
-        checks.push({
-          name: 'agent-browser browser runtime',
-          category: 'AI Tooling',
-          ok: diagnostics.length === 0,
-          detail:
-            diagnostics.length === 0
-              ? 'Upstream doctor reports browser and launch environment healthy'
-              : diagnostics.map((d) => d.message).join('; '),
-          suggestion:
-            diagnostics.length === 0
-              ? undefined
-              : (diagnostics.find((d) => d.fix)?.fix ?? 'Run `agent-browser doctor` for details')
-        });
-      }
+    (activeIds(projectConfig).has('agent-browser') || agentBrowserStubInstalled(targetDir));
+  if (agentBrowserWanted && (await commandExists('agent-browser'))) {
+    const diagnostics = await runAgentBrowserDiagnostics();
+    if (diagnostics !== null) {
+      checks.push({
+        name: 'agent-browser browser runtime',
+        category: 'AI Tooling',
+        ok: diagnostics.length === 0,
+        detail:
+          diagnostics.length === 0
+            ? 'Upstream doctor reports browser and launch environment healthy'
+            : diagnostics.map((d) => d.message).join('; '),
+        suggestion:
+          diagnostics.length === 0
+            ? undefined
+            : (diagnostics.find((d) => d.fix)?.fix ?? 'Run `agent-browser doctor` for details')
+      });
     }
   }
 
@@ -358,15 +378,12 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
   }
 
   // Print grouped results
-  const categories: Array<'Environment' | 'AI Tooling' | 'Project Config'> = [
-    'Environment',
-    'AI Tooling',
-    'Project Config'
-  ];
+  const categories: CheckCategory[] = ['Environment', 'AI Tooling', 'Project Config', 'Capabilities'];
 
   for (const cat of categories) {
-    console.log(pc.bold(pc.underline(cat)));
     const catChecks = checks.filter((c) => c.category === cat);
+    if (catChecks.length === 0) continue;
+    console.log(pc.bold(pc.underline(cat)));
     for (const c of catChecks) {
       const icon = c.ok ? pc.green('✓') : pc.yellow('⚠');
       const name = pc.bold(c.name);

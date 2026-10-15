@@ -7,6 +7,7 @@ import {
 } from './schema.js';
 import {
   applyResolvedProfile,
+  isNodeStack,
   MATT_POCOCK_SKILLS,
   Platform,
   ProfileFlags,
@@ -52,7 +53,8 @@ export function getDefaultConfig(
     name,
     preset,
     ...(framework ? { framework } : {}),
-    packageManager,
+    // Only Node projects have a package manager; the others use their host toolchain.
+    ...(isNodeStack(stack) ? { packageManager } : {}),
     platform,
     stack,
     agents: {

@@ -24,7 +24,7 @@ export async function initCurrentDirectory(options: NewProjectOptions = {}): Pro
   else projectName = sanitizeProjectName(projectName);
 
   const packageManager =
-    options.packageManager ?? saved?.packageManager ?? detectPackageManager(currentDir) ?? 'pnpm';
+    options.packageManager ?? saved?.packageManager ?? detectPackageManager(currentDir) ?? undefined;
 
   return createProject(projectName, {
     ...options,

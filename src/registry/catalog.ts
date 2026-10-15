@@ -82,6 +82,7 @@ export const CATALOG: CapabilityDescriptor[] = [
       { kind: 'binary', bin: 'graft', install: 'npm install -g @nanonets/graft' },
       { kind: 'setup', setup: 'graft' }
     ],
+    doctor: [{ kind: 'file', path: 'graft/INDEX.md', fix: 'graft build' }],
     routing: {
       task: 'Codebase exploration & impact analysis',
       read: '`graft ask "<query>" --source` / `graft skeleton <file>` (see the Graft section)'
@@ -251,7 +252,7 @@ export const CATALOG: CapabilityDescriptor[] = [
           '- No `DESIGN.md`? Run `/impeccable document` to derive it from the existing code.',
           `- Before shipping UI: \`/impeccable audit <screen>\`, fix the findings, then \`/impeccable polish <screen>\`.`,
           driver
-            ? `- Give both commands evidence: capture a ${driver} snapshot and screenshot of the screen (loop above) and attach them.`
+            ? `- Give both commands evidence: a snapshot and screenshot of the screen taken with ${driver} (loop above).`
             : '- Give both commands evidence: a screenshot of the running UI.',
           isMobile(ctx)
             ? '- Native checklist: 44pt/48dp touch targets, safe areas, platform navigation patterns, Dynamic Type / font scaling.'
@@ -424,6 +425,31 @@ export const CATALOG: CapabilityDescriptor[] = [
     }
   },
   {
+    id: 'native',
+    name: 'Native test runner',
+    description: "Delegates tests to the host toolchain (flutter test, gradlew test, swift test, cargo test, pytest, ...)",
+    category: 'testing-engine',
+    author: 'aginit',
+    repoUrl: 'https://github.com/antomanc/aginit',
+    license: 'MIT',
+    supportedPlatforms: ['all'],
+    requiresNodeInProjectRoot: false,
+    install: [],
+    guide: {
+      doc: 'testing',
+      render: (ctx) =>
+        [
+          `## Unit & integration tests: ${ctx.stack} toolchain`,
+          `- Run: ${code(ctx.commands.test, 'the project test command')}`,
+          ctx.commands.lint ? `- Static checks: \`${ctx.commands.lint}\`` : undefined,
+          '- Write the failing test first, then the code. Keep tests next to the module they cover, following the toolchain convention.'
+        ]
+          .filter((line): line is string => line !== undefined)
+          .join('\n')
+    }
+  },
+
+  {
     id: 'playwright',
     name: 'Playwright',
     description: 'Deterministic browser end-to-end tests',
@@ -485,31 +511,6 @@ export const CATALOG: CapabilityDescriptor[] = [
       }
     }
   },
-  {
-    id: 'native',
-    name: 'Native test runner',
-    description: "Delegates tests to the host toolchain (flutter test, gradlew test, swift test, cargo test, pytest, ...)",
-    category: 'testing-engine',
-    author: 'aginit',
-    repoUrl: 'https://github.com/antomanc/aginit',
-    license: 'MIT',
-    supportedPlatforms: ['all'],
-    requiresNodeInProjectRoot: false,
-    install: [],
-    guide: {
-      doc: 'testing',
-      render: (ctx) =>
-        [
-          `## Unit & integration tests: ${ctx.stack} toolchain`,
-          `- Run: ${code(ctx.commands.test, 'the project test command')}`,
-          ctx.commands.lint ? `- Static checks: \`${ctx.commands.lint}\`` : undefined,
-          '- Write the failing test first, then the code. Keep tests next to the module they cover, following the toolchain convention.'
-        ]
-          .filter((line): line is string => line !== undefined)
-          .join('\n')
-    }
-  },
-
   // ── Context guards (add-ons) ──────────────────────────────────────────────
   {
     id: 'context-mode',

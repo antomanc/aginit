@@ -119,7 +119,7 @@ function resolveConfig(
     ...existingConfig,
     name: projectName,
     preset: presetName,
-    packageManager,
+    ...(isNodeStack(stack) || existingConfig.packageManager !== undefined ? { packageManager } : {}),
     ...(presetName === 'web' ? { framework: framework ?? 'none' } : {}),
     browser:
       options.framework !== undefined || options.preset !== undefined
@@ -191,7 +191,7 @@ export async function createProject(
   if (!silent)
     logger.banner(
       `Aginit — ${projectName}`,
-      `Preset: ${presetName} | Platform: ${platform} (${stack}) | PM: ${packageManager} | Target: ${targetDir}${dryRun ? ' (DRY RUN)' : ''}`
+      `Preset: ${presetName} | Platform: ${platform} (${stack})${isNodeStack(stack) ? ` | PM: ${packageManager}` : ''} | Target: ${targetDir}${dryRun ? ' (DRY RUN)' : ''}`
     );
   if (!silent) logger.dim(`Capabilities: ${active.map((c) => c.id).join(', ') || 'none'}`);
   let complete = true;
@@ -303,7 +303,7 @@ export async function createProject(
 }
 
 /** Binaries of active capabilities that are not on PATH (setups report their own). */
-async function missingBinaries(
+export async function missingBinaries(
   active: CapabilityDescriptor[],
   setups: string[]
 ): Promise<Array<{ name: string; bin: string; install: string }>> {
