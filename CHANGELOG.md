@@ -15,10 +15,14 @@
 
 ### Changed
 
+- The interactive wizard uses detected stack defaults and registry choices for platform, methodology, design, testing and UI automation. Short labels and a setup summary make choices easier to review.
+
 - AGENTS.md's "AI Capabilities & Skills" list moved to `docs/agents/workflows.md`.
 - A generic preset on an existing Node project defaults to the project's own test runner (`native`) instead of claiming Vitest it never installed.
 
 ### Fixed
+
+- Committed Claude helpers resolve Graft at runtime without personal machine paths.
 
 - THIRD_PARTY_NOTICES.md credited humanizer and Impeccable to the wrong authors. It now credits every integration, with licenses checked upstream; a test keeps it in sync with the registry.
 

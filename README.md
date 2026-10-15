@@ -80,7 +80,9 @@ aginit doctor               Check the environment and every active capability
 aginit update               Update installed skills and rebuild the Graft index
 ```
 
-Bare `aginit` opens the wizard in a terminal and prints help elsewhere. Pass any option, or
+Bare `aginit` opens the wizard in a terminal and prints help elsewhere. The wizard detects your stack,
+then offers platform, methodology, design, testing and UI driver choices with a setup summary.
+Initializing an existing directory preserves its stack; Node-only tools are hidden for other stacks. Pass any option, or
 `--yes`, to initialize without prompts.
 
 Setup flags: `--preset web|cli|generic`, `--framework none|vite|next|existing`,

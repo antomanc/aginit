@@ -4,7 +4,6 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { execFileSync } = require('child_process');
 const dir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const BAKED = "/home/antomanc/.local/share/mise/installs/node/24.21.0/lib/node_modules/@nanonets/graft/dist/claude";
 
 // The dist/claude dir of @nanonets/graft resolved from a base whose node_modules is searched.
 function fromPkg(base) {
@@ -55,7 +54,7 @@ function best(dirs, name) {
 
 function entry(name) {
   // Cheap candidates first, and only shell out to npm when every one of them misses.
-  const cheap = [BAKED, fromPkg(dir), fromPkg(path.join(path.dirname(process.execPath), '..', 'lib'))];
+  const cheap = [fromPkg(dir), fromPkg(path.join(path.dirname(process.execPath), '..', 'lib'))];
   const hit = best(cheap, name);
   if (hit) return path.join(hit, name);
   const gr = globalRoot();

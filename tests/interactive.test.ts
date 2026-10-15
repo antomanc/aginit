@@ -5,10 +5,13 @@ const mocks = vi.hoisted(() => ({
   text: vi.fn(),
   create: vi.fn(),
   init: vi.fn(),
-  config: vi.fn()
+  config: vi.fn(),
+  confirm: vi.fn()
 }));
 vi.mock('@clack/prompts', () => ({
   select: mocks.select,
+  note: vi.fn(),
+  confirm: mocks.confirm,
   text: mocks.text,
   isCancel: () => false,
   intro: vi.fn(),
@@ -28,8 +31,10 @@ afterEach(() => {
 it('reports incomplete new setup from the root wizard', async () => {
   mocks.select
     .mockResolvedValueOnce('new')
-    .mockResolvedValueOnce('generic')
+    .mockResolvedValueOnce('cli')
     .mockResolvedValueOnce('npm');
+  mocks.select.mockImplementation(async (options) => options.initialValue);
+  mocks.confirm.mockResolvedValue(true);
   mocks.text.mockResolvedValue('app');
   mocks.create.mockResolvedValue(false);
   await runInteractiveWizard();
@@ -43,4 +48,30 @@ it('initializes saved settings without converting them to explicit overrides', a
   expect(mocks.init).toHaveBeenCalledWith();
   expect(process.exitCode).toBe(1);
   expect(mocks.select).toHaveBeenCalledTimes(1);
+});
+
+it('passes the selected v2 profile to setup', async () => {
+  mocks.select.mockImplementation(async (options) => {
+    const choices: Record<string, string> = {
+      'What would you like to do?': 'init', Platform: 'web', Methodology: 'superpowers',
+      Design: 'impeccable', 'Testing engine': 'e2e', 'UI driver': 'agent-browser'
+    };
+    return choices[options.message] ?? options.initialValue;
+  });
+  mocks.confirm.mockResolvedValue(true);
+  mocks.init.mockResolvedValue(true);
+  await runInteractiveWizard();
+  expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({
+    preset: 'generic',
+    profile: { platform: 'web', methodology: 'superpowers', design: 'impeccable',
+      testing: 'e2e', uiDriver: 'agent-browser' }
+  }));
+});
+it('leaves setup untouched when the user declines the summary', async () => {
+  mocks.select.mockImplementation(async (options) =>
+    options.message === 'What would you like to do?' ? 'init' : options.initialValue);
+  mocks.confirm.mockResolvedValue(false);
+  await runInteractiveWizard();
+  expect(mocks.init).not.toHaveBeenCalled();
+  expect(mocks.create).not.toHaveBeenCalled();
 });

@@ -126,6 +126,7 @@ export function createCliProgram(): Command {
       let finalPreset = options.preset;
       let finalFramework = options.framework;
       let finalPackageManager = options.packageManager;
+      let finalProfile = profileFlags(options);
 
       if (!finalName) {
         if (!isInteractive()) {
@@ -143,12 +144,14 @@ export function createCliProgram(): Command {
           packageManager:
             command.getOptionValueSource('packageManager') === 'cli'
               ? (options.packageManager as PackageManager)
-              : undefined
+              : undefined,
+          profile: finalProfile
         });
         finalName = answers.projectName;
         finalPreset = answers.preset;
         finalFramework = answers.framework;
         finalPackageManager = answers.packageManager;
+        finalProfile = answers.profile;
       }
 
       const complete = await createProject(finalName, {
@@ -159,7 +162,7 @@ export function createCliProgram(): Command {
         graft: options.graft,
         git: options.git,
         dryRun: options.dryRun,
-        profile: profileFlags(options)
+        profile: finalProfile
       });
       if (!complete && !options.dryRun) process.exitCode = 1;
     });
@@ -181,6 +184,7 @@ export function createCliProgram(): Command {
       let finalPreset = options.preset;
       let finalFramework = options.framework;
       let finalPackageManager = options.packageManager;
+      let finalProfile = profileFlags(options);
 
       const isPresetExplicit = command.getOptionValueSource('preset') === 'cli';
       const isFrameworkExplicit = command.getOptionValueSource('framework') === 'cli';
@@ -191,11 +195,13 @@ export function createCliProgram(): Command {
         const answers = await promptInitProject({
           preset: isPresetExplicit ? (options.preset as PresetType) : undefined,
           framework: isFrameworkExplicit ? (options.framework as WebFramework) : undefined,
-          packageManager: isPmExplicit ? (options.packageManager as PackageManager) : undefined
+          packageManager: isPmExplicit ? (options.packageManager as PackageManager) : undefined,
+          profile: finalProfile
         });
         finalPreset = answers.preset;
         finalFramework = answers.framework;
         finalPackageManager = answers.packageManager;
+        finalProfile = answers.profile;
       }
 
       const complete = await initCurrentDirectory({
@@ -206,7 +212,7 @@ export function createCliProgram(): Command {
         graft: options.graft,
         git: options.git,
         dryRun: options.dryRun,
-        profile: profileFlags(options)
+        profile: finalProfile
       });
       if (!complete && !options.dryRun) process.exitCode = 1;
     });
