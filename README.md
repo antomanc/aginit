@@ -3,9 +3,10 @@
 **Set up a new or existing project for AI coding agents with one command.**
 
 aginit gives a repo what agents need to do good work from the first session: an `AGENTS.md`
-that explains the project, a curated set of engineering skills, a codebase graph so agents
-read less and understand more, and a test harness they can actually run. It wires up
-upstream tools instead of reimplementing them.
+that routes each task to the right doc, a curated set of engineering skills, a codebase graph
+so agents read less and understand more, a test harness they can actually run, and a way to
+see the UI they change. It works for web, native mobile (Flutter, Swift, Kotlin), React Native,
+backend and CLI projects, and it wires up upstream tools instead of reimplementing them.
 
 ```bash
 npx @antomanc/aginit
@@ -34,13 +35,17 @@ aginit sets all of this up the same way every time, and you can re-run it whenev
 
 | | |
 |---|---|
-| **Instructions** | `AGENTS.md` with the project's real commands, invariants and a first-session playbook, shared by Antigravity, Codex and any agent that reads `AGENTS.md`, plus a one-line `CLAUDE.md` (`@AGENTS.md`) so Claude Code loads it too |
-| **Skills** | All 27 stable [Matt Pocock skills](https://github.com/mattpocock/skills) (`tdd`, `code-review`, `diagnosing-bugs`, `to-spec`, `to-tickets`, `implement-spec`, `pr`...) plus [humanizer](https://github.com/blader/humanizer) and [ponytail](https://github.com/DietrichGebert/ponytail), installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills) and linked into `.claude/skills/` for Claude Code |
+| **Instructions** | A lean `AGENTS.md`: invariants, the project's real commands, Karpathy guardrails, a **Task Routing** table and an **Anti-Rationalization** table. Details live in `docs/agents/testing.md`, `ui-verification.md` and `workflows.md`, which agents load only when the task needs them. A one-line `CLAUDE.md` (`@AGENTS.md`) makes Claude Code read it too |
+| **Skills** | One methodology ([Matt Pocock skills](https://github.com/mattpocock/skills) by default, or [Superpowers](https://github.com/obra/superpowers), or none) plus [ponytail](https://github.com/DietrichGebert/ponytail), [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and [humanizer](https://github.com/blader/humanizer). Installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills), linked into `.claude/skills/` |
 | **Codebase graph** | [Graft](https://www.npmjs.com/package/@nanonets/graft): `graft map` and `graft ask` give agents the relevant code spans before they grep |
-| **Test tooling** | Vitest for TypeScript projects, plus Playwright when a web framework is selected |
-| **Web extras** | [Impeccable](https://github.com/pbakaus/impeccable) for UI design and [agent-browser](https://github.com/vercel-labs/agent-browser) for visual QA, with its CLI and browser binaries installed so it works out of the box |
-| **Scaffolding** | Official Vite and Next.js scaffolders, or a Commander-based TypeScript CLI |
-| **Maintenance** | `aginit doctor` checks readiness; `aginit update` refreshes skills and the graph |
+| **Design** | [Impeccable](https://github.com/pbakaus/impeccable) on web and mobile (`/impeccable init`, `audit`, `polish`). It needs no Node, so it works in Flutter, Swift and Kotlin repos |
+| **UI verification** | [agent-browser](https://github.com/vercel-labs/agent-browser) for web, [agent-device](https://github.com/callstack/agent-device) for iOS Simulator and Android Emulator. Optional: [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), [BrowserSkill](https://github.com/Tencent/BrowserSkill) |
+| **Testing** | Vitest (+ Playwright with a web framework) for Node projects, the host runner (`flutter test`, `cargo test`, ...) otherwise, and optionally [e2e](https://github.com/tester-army/e2e), natural-language E2E tests with a zero-cost replay cache |
+| **Add-ons** | [context-mode](https://github.com/mksglu/context-mode) keeps huge logs out of the context window; [Worktrunk](https://github.com/max-sixty/worktrunk) gives parallel agents their own worktrees |
+| **Maintenance** | `aginit list`, `add` and `remove` change capabilities in place; `doctor` checks every active one; `update` refreshes skills and the graph |
+
+Non-JS projects stay non-JS: aginit never adds a root `package.json` to a Flutter, Swift,
+Kotlin, Rust, Go or Python repo. e2e gets its own workspace in `.agents/e2e/`.
 
 ## Quick start
 
@@ -65,20 +70,57 @@ npm install -g @nanonets/graft
 ## Commands
 
 ```
-aginit new [name]   Create a new project
-aginit init         Add or update agent setup in the current directory
-aginit doctor       Check Node.js, package manager, Git, Graft, Codex, Skills CLI, agent-browser, Claude Code wiring and config
-aginit update       Update installed skills and rebuild the Graft index
+aginit [options]            Set up or update the current directory (same as aginit init)
+aginit new [name]           Create a new project
+aginit init                 Add or update agent setup in the current directory
+aginit list                 Show the capability registry and what this project enables
+aginit add <id|owner/repo>  Enable capabilities (installs skills, refreshes AGENTS.md and docs)
+aginit remove <id>          Disable capabilities and remove their skills
+aginit doctor               Check the environment and every active capability
+aginit update               Update installed skills and rebuild the Graft index
 ```
 
-Useful flags: `--preset web|cli|generic`, `--framework none|vite|next|existing`,
-`--package-manager pnpm|npm|yarn|bun`, `--dry-run`, `--no-skills`, `--no-graft`, `--no-git`.
+Bare `aginit` opens the wizard in a terminal and prints help elsewhere. Pass any option, or
+`--yes`, to initialize without prompts.
+
+Setup flags: `--preset web|cli|generic`, `--framework none|vite|next|existing`,
+`--package-manager pnpm|npm|yarn|bun`, `--dry-run`, `--yes`, `--no-skills`, `--no-graft`, `--no-git`.
+
+Capability flags (the platform is detected; flags override it):
+
+| Flag | Values |
+| --- | --- |
+| `--platform` | `auto`, `web`, `mobile-native`, `mobile-rn`, `backend`, `cli` |
+| `--methodology` | `pocock` (default), `superpowers`, `minimal` |
+| `--design` | `impeccable` (default for UI platforms), `none` |
+| `--testing` | `e2e`, `playwright`, `vitest`, `native` |
+| `--ui-driver` | `auto`, `agent-browser`, `agent-device`, `chrome-devtools-mcp`, `browserskill`, `none` |
+| `--addons` | `context-mode`, `worktrunk`, `chrome-devtools-mcp`, `browserskill` (comma-separated) |
+| `--add-skill` | any `owner/repo` skill repository (repeatable) |
+| `--without` | any capability id, e.g. `graft` or `humanizer` (repeatable) |
+
+### Examples
 
 ```bash
-aginit new my-app --preset web --framework vite
-aginit new my-app --preset web --framework next --package-manager npm
-aginit new my-cli --preset cli
-aginit init --preset generic --dry-run
+# Web: Vite app with agent-browser, Impeccable and e2e tests
+aginit new my-app --preset web --framework vite --testing e2e
+
+# Flutter / Swift / Kotlin: run inside the existing app. Detected as mobile-native, it gets
+# agent-device and Impeccable, and e2e is isolated in .agents/e2e/ (no root package.json)
+cd my_flutter_app && aginit --testing e2e
+cd .agents/e2e && npm install      # then: npx e2e run against a booted simulator
+
+# React Native / Expo: detected as mobile-rn (agent-device, the project's own test script)
+cd my-expo-app && aginit --yes
+
+# CLI or library without UI tooling, Superpowers instead of Pocock skills
+aginit init --platform cli --design none --methodology superpowers
+
+# Change an existing project
+aginit add context-mode worktrunk
+aginit add superpowers             # swaps out the current methodology
+aginit remove impeccable
+aginit list
 ```
 
 ## Presets
@@ -92,9 +134,40 @@ aginit init --preset generic --dry-run
 The web preset's `--framework none` (default) creates a TypeScript baseline without a bundler
 or browser tests. `existing` keeps the framework you already have.
 
-Your choices (preset, framework, package manager, agents, skill sources) are saved in
-`aginit.config.json`, so the next run starts from them. The package manager is also passed
-to framework scaffolders.
+Your choices (preset, framework, package manager, platform, stack, capabilities, skill
+sources) are saved in `aginit.config.json`, and a plain rerun applies them as written. The
+package manager is also passed to framework scaffolders. On a non-Node stack the preset is
+`generic`, which writes no Node files.
+
+## Extending the registry
+
+Every tool aginit knows is one entry in [`src/registry/catalog.ts`](src/registry/catalog.ts).
+`init`, `list`, `add`, `remove`, `doctor`, the AGENTS.md routing table and the `docs/agents/`
+pages all read from it, so a new skill takes one entry and no other code:
+
+```ts
+{
+  id: 'my-skill', name: 'My skill', description: 'What it does',
+  category: 'discipline', author: 'Me', repoUrl: 'https://github.com/me/my-skill',
+  license: 'MIT', supportedPlatforms: ['all'], requiresNodeInProjectRoot: false,
+  install: [{ kind: 'skills-sh', repo: 'me/my-skill', skills: ['my-skill'] }],
+  routing: { task: 'When to use it', read: '`my-skill` skill' }
+}
+```
+
+Without a release, add a skill repository to one project with `aginit add owner/repo` (or
+`--add-skill`), or declare it in `aginit.config.json`:
+
+```json
+"customCapabilities": [
+  { "id": "acme-review", "repo": "acme/agent-skills", "skills": ["review"],
+    "binary": { "bin": "acme", "install": "npm i -g acme-cli" } }
+],
+"disabledCapabilities": ["humanizer"]
+```
+
+Doctor then checks `.agents/skills/review/SKILL.md` and the `acme` CLI, and
+`docs/agents/workflows.md` lists the skill.
 
 ## Existing projects
 
@@ -102,14 +175,19 @@ to framework scaffolders.
 dependency versions and test configs, and only adds what's missing. If you already use a
 different test runner, aginit adds a separate `test:unit` script instead of touching yours.
 
-An existing `AGENTS.md` is preserved; aginit only appends its bootstrap section. Configs from
-older versions that used the retired default skill selection are upgraded to the current
-set, while a skill list you narrowed by hand stays as written.
+An existing `AGENTS.md` is preserved. aginit adds its managed block between
+`<!-- aginit:start -->` and `<!-- aginit:end -->`, above Graft's block, and refreshes only that
+block afterwards. The `docs/agents/` pages carry a marker line; delete it and aginit leaves
+that page to you. Configs from older versions keep loading unchanged. Their capabilities are
+inferred from `skills.sources` and the `codebase`/`browser` switches until you run
+`aginit add`, `remove` or pass a capability flag.
 
 ## Design
 
-- **Orchestrates, doesn't vendor.** Skills, Graft, Vite, Next.js and Playwright come from
-  their upstream tools. aginit picks good defaults and runs them.
+- **Orchestrates, doesn't vendor.** Skills, Graft, e2e, Vite, Next.js and Playwright come
+  from their upstream tools. aginit picks good defaults and runs them. CLIs it does not
+  install itself (agent-device, context-mode, `wt`, `bsk`) are checked, and the upstream
+  install command is printed.
 - **Idempotent.** Re-running the same init is safe; explicit options override saved settings.
 - **Honest dry-run.** `--dry-run` lists every planned operation without writing files or
   downloading tools. (Files produced by upstream scaffolders are only known after they run.)

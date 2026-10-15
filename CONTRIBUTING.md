@@ -9,6 +9,14 @@ Thank you for your interest in contributing to Aginit!
 3. **Idempotence & safety**: Project creation and initialization must never destroy user files or overwrite custom changes destructively.
 4. **Resilient defaults**: Always support `--dry-run` and keep offline fallbacks graceful.
 
+## Adding or changing a capability
+
+Skills, tools and test engines live in one place: `src/registry/catalog.ts`. Add a
+`CapabilityDescriptor` there (install steps, platforms, credits, optional routing row,
+rebuttals or docs section) and credit it in `THIRD_PARTY_NOTICES.md`; a test fails until you do.
+CLI parsing, writers and doctor need no changes. Only a tool that needs its own init command
+gets a `setup` entry in `src/registry/setup.ts`.
+
 ## Development Workflow
 
 1. Clone repository and install dependencies:
