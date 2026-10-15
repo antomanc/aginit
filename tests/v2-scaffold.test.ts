@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { detectProject, projectCommands } from '../src/detect/index.js';
-import { GENERATED_MARKER } from '../src/adapters/agent-docs.js';
+import { GENERATED_MARKER, LEGACY_GENERATED_MARKER } from '../src/adapters/agent-docs.js';
+import { AGINIT_BLOCK_START } from '../src/adapters/agents-md.js';
 import type { ProfileFlags } from '../src/registry/index.js';
 
 const shell = vi.hoisted(() => ({ runExecutable: vi.fn(), commandExists: vi.fn() }));
@@ -227,10 +228,31 @@ describe('AGENTS.md and docs/agents merge safety', () => {
     );
     await createProject('merge', { ...options, targetDir: dir, graft: false });
     const first = read('AGENTS.md');
-    expect(first.startsWith('# Mine\n\nKeep this.\n\n<!-- aginit:start -->')).toBe(true);
+    expect(first.startsWith('# Mine\n\nKeep this.\n\n' + AGINIT_BLOCK_START)).toBe(true);
     expect(first.indexOf('<!-- aginit:end -->')).toBeLessThan(first.indexOf('<!-- graft:start -->'));
     await createProject('merge', { ...options, targetDir: dir, graft: false });
     expect(read('AGENTS.md')).toBe(first);
+  });
+
+  it('updates legacy markers in-place in AGENTS.md and docs/agents/*.md without duplicating blocks', async () => {
+    fs.writeFileSync(
+      file('AGENTS.md'),
+      '# Mine\n\nKeep this.\n\n<!-- aginit:start -->\nlegacy block\n<!-- aginit:end -->\n\n<!-- graft:start -->\ngraft stuff\n<!-- graft:end -->\n'
+    );
+    fs.mkdirSync(path.join(dir, 'docs', 'agents'), { recursive: true });
+    fs.writeFileSync(
+      file('docs/agents/testing.md'),
+      `${LEGACY_GENERATED_MARKER}\n# Testing\nold\n`
+    );
+    await createProject('upgrade', { ...options, targetDir: dir, graft: false });
+    const agents = read('AGENTS.md');
+    expect(agents.startsWith('# Mine\n\nKeep this.\n\n' + AGINIT_BLOCK_START)).toBe(true);
+    expect(agents).not.toContain('<!-- aginit:start -->');
+    expect(agents.match(/<!--\s*aginit:start/g)?.length).toBe(1);
+
+    const testing = read('docs/agents/testing.md');
+    expect(testing.startsWith(GENERATED_MARKER)).toBe(true);
+    expect(testing).not.toContain(LEGACY_GENERATED_MARKER);
   });
 
   it('never rewrites a micro-doc the user took over', async () => {

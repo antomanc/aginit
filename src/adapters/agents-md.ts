@@ -20,8 +20,12 @@ const PLATFORM_LABELS: Record<string, string> = {
   cli: 'CLI'
 };
 
-export const AGINIT_BLOCK_START = '<!-- aginit:start -->';
+export const AGINIT_BLOCK_START =
+  '<!-- aginit:start — managed by npx @antomanc/aginit (re-run to refresh) -->';
 export const AGINIT_BLOCK_END = '<!-- aginit:end -->';
+
+export const AGINIT_START_PATTERN = /<!--\s*aginit:start(?:\b[^>]*)?-->/;
+export const AGINIT_END_PATTERN = /<!--\s*aginit:end(?:\b[^>]*)?-->/;
 
 const BOOTSTRAP_SECTION = [
   '## Bootstrap & First Session',
@@ -163,14 +167,21 @@ export function generateAgentsMarkdown(
 
 /** Insert or refresh the aginit block in an existing AGENTS.md, leaving everything else as written. */
 export function mergeAgentsBlock(existing: string, block: string): string {
-  const start = existing.indexOf(AGINIT_BLOCK_START);
-  const end = existing.indexOf(AGINIT_BLOCK_END);
-  if (start !== -1 && end > start)
-    return existing.slice(0, start) + block + existing.slice(end + AGINIT_BLOCK_END.length);
+  const startMatch = existing.match(AGINIT_START_PATTERN);
+  if (startMatch && startMatch.index !== undefined) {
+    const afterStart = existing.slice(startMatch.index + startMatch[0].length);
+    const endMatch = afterStart.match(AGINIT_END_PATTERN);
+    if (endMatch && endMatch.index !== undefined) {
+      const endOffset = startMatch.index + startMatch[0].length + endMatch.index + endMatch[0].length;
+      return existing.slice(0, startMatch.index) + block + existing.slice(endOffset);
+    }
+  }
   // Above Graft's block when there is one, so Graft keeps owning the end of the file.
-  const graft = existing.indexOf('<!-- graft:start -->');
-  if (graft !== -1)
+  const graftMatch = existing.match(/<!--\s*graft:start(?:\b[^>]*)?-->/);
+  if (graftMatch && graftMatch.index !== undefined) {
+    const graft = graftMatch.index;
     return existing.slice(0, graft).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(graft);
+  }
   return existing.trimEnd() + '\n\n' + block + '\n';
 }
 

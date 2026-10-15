@@ -23,7 +23,7 @@ When the user asks to "bootstrap this project" or kicks off a new initiative:
 2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).
 3. Plan in small verifiable increments and implement test-first using installed skills.
 
-<!-- aginit:start -->
+<!-- aginit:start — managed by npx @antomanc/aginit (re-run to refresh) -->
 ## Guardrails (karpathy-guidelines)
 - **Think before coding**: state assumptions and trade-offs; ask instead of guessing.
 - **Simplicity first**: minimum code that solves the problem; no speculative features or abstractions.
@@ -53,7 +53,7 @@ Load only what the task needs. Skills live in `.agents/skills/` (linked into `.c
 ## Graft — repo context graph
 
 This repo is indexed in `graft/`: small linked markdown nodes that explain each
-system and carry exact file:line spans (local cache regenerated via `graft build`).
+system and carry exact file:line spans, kept in sync with the code through git.
 
 For ANY task here — understanding how something works, finding where code lives,
 or scoping a change — get context from the graph before grepping or opening
