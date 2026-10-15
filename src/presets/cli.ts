@@ -4,6 +4,7 @@ import { PresetContext, PresetHandler } from './types.js';
 import { readPackageManifest } from '../config/validation.js';
 import { addTestingDependencies, setupTesting, VITEST_VERSION } from './testing.js';
 import { setupAdr } from './adr.js';
+import { activeIds } from '../registry/index.js';
 
 export const cliPreset: PresetHandler = {
   name: 'cli',
@@ -14,6 +15,11 @@ export const cliPreset: PresetHandler = {
 
     const existing = readPackageManifest(targetDir);
     if (existing) {
+      // An existing project keeps its own runner unless Vitest is a selected capability.
+      if (!activeIds(ctx.config).has('vitest')) {
+        if (ctx.config.docs.adr) setupAdr(targetDir, { dryRun, silent });
+        return;
+      }
       const hadVitestScript = Object.values(existing.scripts || {}).some(
         (script) => typeof script === 'string' && /^vitest(?:\s|$)/.test(script)
       );

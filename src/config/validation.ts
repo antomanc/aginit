@@ -1,10 +1,33 @@
 import path from 'node:path';
 import { fileExists, readJsonFile } from '../utils/fs.js';
 import { AginitConfig, AGINIT_CONFIG_FILENAME, LEGACY_CONFIG_FILENAME } from './schema.js';
+import { CATALOG } from '../registry/catalog.js';
+import { PLATFORMS } from '../registry/index.js';
 
 export const PRESETS = ['web', 'cli', 'generic'] as const;
 export const FRAMEWORKS = ['none', 'vite', 'next', 'existing'] as const;
 export const SUPPORTED_PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun'] as const;
+export const STACKS = [
+  'node',
+  'react-native',
+  'flutter',
+  'swift',
+  'kotlin',
+  'rust',
+  'python',
+  'go',
+  'unknown'
+] as const;
+const CATEGORIES = [
+  'methodology',
+  'discipline',
+  'design',
+  'codebase-graph',
+  'ui-driver',
+  'testing-engine',
+  'context-guard',
+  'custom'
+] as const;
 export function isRecord(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -54,6 +77,39 @@ export function validateConfig(value: unknown): AginitConfig {
     if (!isRecord(source) || !Array.isArray(source.skills)) fail('skill source');
     validateUpstreamArgument(source.package, 'skill package');
     for (const skill of source.skills) validateUpstreamArgument(skill, 'skill name');
+  }
+  if (value.platform !== undefined && !PLATFORMS.includes(value.platform)) fail('platform');
+  if (value.stack !== undefined && !STACKS.includes(value.stack)) fail('stack');
+  for (const key of ['capabilities', 'disabledCapabilities']) {
+    if (value[key] === undefined) continue;
+    if (!Array.isArray(value[key])) fail(key);
+    for (const id of value[key]) validateUpstreamArgument(id, `${key} entry`);
+  }
+  if (value.customCapabilities !== undefined) {
+    if (!Array.isArray(value.customCapabilities)) fail('customCapabilities');
+    const seen = new Set<string>();
+    for (const custom of value.customCapabilities) {
+      if (!isRecord(custom)) fail('customCapabilities entry');
+      validateUpstreamArgument(custom.id, 'custom capability id');
+      if (seen.has(custom.id) || CATALOG.some((entry) => entry.id === custom.id))
+        fail(`customCapabilities: duplicate id "${custom.id}"`);
+      seen.add(custom.id);
+      if (typeof custom.repo !== 'string' || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(custom.repo))
+        fail(`customCapabilities.${custom.id}.repo (expected owner/repo)`);
+      if (custom.skills !== undefined) {
+        if (!Array.isArray(custom.skills)) fail(`customCapabilities.${custom.id}.skills`);
+        for (const skill of custom.skills) validateUpstreamArgument(skill, 'skill name');
+      }
+      if (custom.category !== undefined && !CATEGORIES.includes(custom.category))
+        fail(`customCapabilities.${custom.id}.category`);
+      if (
+        custom.binary !== undefined &&
+        (!isRecord(custom.binary) ||
+          typeof custom.binary.install !== 'string' ||
+          !/^[a-zA-Z0-9._-]+$/.test(String(custom.binary.bin)))
+      )
+        fail(`customCapabilities.${custom.id}.binary`);
+    }
   }
   for (const [section, keys] of Object.entries({
     codebase: ['graft'],

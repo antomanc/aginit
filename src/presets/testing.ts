@@ -3,15 +3,21 @@ import { safeWriteFile, fileExists } from '../utils/fs.js';
 import { PresetContext } from './types.js';
 
 export const VITEST_VERSION = '^4.1.11';
-export function addTestingDependencies(pkg: Record<string, any>, playwright = false): void {
+export function addTestingDependencies(
+  pkg: Record<string, any>,
+  playwright = false,
+  vitest = true
+): void {
   pkg.scripts ??= {};
   pkg.devDependencies ??= {};
-  if (!pkg.dependencies?.vitest && !pkg.devDependencies.vitest)
-    pkg.devDependencies.vitest = VITEST_VERSION;
-  const customTest = pkg.scripts.test && !/^vitest(?:\s|$)/.test(pkg.scripts.test);
-  const testScript = customTest ? 'test:unit' : 'test';
-  pkg.scripts[testScript] ??= 'vitest run';
-  pkg.scripts[customTest ? 'test:unit:watch' : 'test:watch'] ??= 'vitest';
+  if (vitest) {
+    if (!pkg.dependencies?.vitest && !pkg.devDependencies.vitest)
+      pkg.devDependencies.vitest = VITEST_VERSION;
+    const customTest = pkg.scripts.test && !/^vitest(?:\s|$)/.test(pkg.scripts.test);
+    const testScript = customTest ? 'test:unit' : 'test';
+    pkg.scripts[testScript] ??= 'vitest run';
+    pkg.scripts[customTest ? 'test:unit:watch' : 'test:watch'] ??= 'vitest';
+  }
   if (playwright) {
     pkg.scripts['test:e2e'] ??= 'playwright test';
     if (!pkg.dependencies?.['@playwright/test'] && !pkg.devDependencies['@playwright/test'])
