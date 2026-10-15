@@ -300,7 +300,7 @@ export function activeCapabilities(config: AginitConfig): CapabilityDescriptor[]
       if (capability.id === 'graft' && config.codebase.graft === false) return false;
       if (capability.id === 'playwright' && !config.browser.playwright) return false;
       // Skills only install from configured sources (`--no-skills` empties them).
-      const steps = skillSteps(capability);
+      const steps = skillSteps(capability).filter((step) => !step.optional);
       return (
         steps.length === 0 ||
         steps.some((step) => config.skills.sources.some((s) => samePackage(s.package, step.repo)))
@@ -363,11 +363,19 @@ export interface DerivedCheck {
   check: DoctorCheck;
 }
 
-/** Doctor checks for a capability: its declared ones plus one per skill and binary. */
-export function doctorChecks(capability: CapabilityDescriptor): DoctorCheck[] {
+/**
+ * Doctor checks for a capability: its declared ones plus one per skill and
+ * binary. Optional skills are checked only when their source is configured.
+ */
+export function doctorChecks(
+  capability: CapabilityDescriptor,
+  sources?: SkillSourceConfig[]
+): DoctorCheck[] {
   const derived: DoctorCheck[] = [];
   for (const step of capability.install) {
     if (step.kind === 'skills-sh') {
+      if (step.optional && sources && !sources.some((s) => samePackage(s.package, step.repo)))
+        continue;
       for (const skill of step.skills)
         derived.push({
           kind: 'file',

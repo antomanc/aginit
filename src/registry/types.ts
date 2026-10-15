@@ -24,9 +24,13 @@ export type CapabilityCategory =
 export type MicroDoc = 'testing' | 'ui-verification' | 'workflows';
 
 export type InstallStep =
-  /** `npx skills add <repo> --skill <skills...>` into .agents/skills/ (empty list = every skill). */
-  | { kind: 'skills-sh'; repo: string; skills: string[] }
-  /** A CLI the capability drives. aginit checks it and prints `install`; it never installs it globally. */
+  /**
+   * `npx skills add <repo> --skill <skills...>` into .agents/skills/ (empty list = every skill).
+   * The capability is active only while its source is configured, unless the step is
+   * `optional` (a helper skill for a tool that works without it, like e2e).
+   */
+  | { kind: 'skills-sh'; repo: string; skills: string[]; optional?: boolean }
+  /** A CLI the capability drives: init and doctor check it and print `install` when it is missing. */
   | { kind: 'binary'; bin: string; install: string }
   /** Upstream setup that needs code (see src/registry/setup.ts). */
   | { kind: 'setup'; setup: SetupId };

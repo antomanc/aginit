@@ -131,6 +131,18 @@ describe('Flutter project (native mobile, no Node at the root)', () => {
     expect(ui.indexOf('agent-device loop')).toBeLessThan(ui.indexOf('Impeccable'));
   });
 
+  it('still scaffolds e2e when skills are skipped (its skill is optional)', async () => {
+    await createProject('flutter-app', {
+      ...options,
+      targetDir: dir,
+      skills: false,
+      graft: false,
+      profile: { testing: 'e2e' }
+    });
+    expect(calls().some((c) => c.includes('e2e@latest init .agents/e2e'))).toBe(true);
+    expect(calls().some((c) => c.includes('skills add'))).toBe(false);
+  });
+
   it('refuses Node-only test tooling before writing anything', async () => {
     await expect(
       createProject('flutter-app', { ...options, targetDir: dir, profile: { testing: 'vitest' } })

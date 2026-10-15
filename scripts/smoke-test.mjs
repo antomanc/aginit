@@ -152,6 +152,24 @@ try {
       assert.match(run(process.execPath, ['bin/cli.js', '--help'], dir), /ready.*--help/);
     }
   }
+  // Non-JS projects: no root package.json, e2e isolated in .agents/e2e (real `e2e init`).
+  console.log('Verifying packed CLI → flutter-app (non-JS, isolated e2e)...');
+  const flutter = path.join(projectsDir, 'flutter-app');
+  fs.mkdirSync(flutter);
+  fs.writeFileSync(path.join(flutter, 'pubspec.yaml'), 'name: flutter_app\n');
+  cli(['init', '--testing', 'e2e', ...flags], flutter);
+  for (const file of ['package.json', 'tsconfig.json', 'node_modules'])
+    assert(!fs.existsSync(path.join(flutter, file)), `${file} must not exist in a Flutter root`);
+  assert(fs.existsSync(path.join(flutter, '.agents', 'e2e', 'e2e.config.ts')));
+  assert(manifest(path.join(flutter, '.agents', 'e2e')).devDependencies['@e2e-dev/mobile']);
+  assert.match(fs.readFileSync(path.join(flutter, 'AGENTS.md'), 'utf8'), /flutter test/);
+  assert.match(fs.readFileSync(path.join(flutter, 'docs', 'agents', 'testing.md'), 'utf8'), /\.agents\/e2e/);
+  const flutterConfig = fs.readFileSync(path.join(flutter, 'aginit.config.json'), 'utf8');
+  assert.equal(JSON.parse(flutterConfig).stack, 'flutter');
+  cli(['init', ...flags], flutter);
+  assert.equal(fs.readFileSync(path.join(flutter, 'aginit.config.json'), 'utf8'), flutterConfig);
+  assert.match(cli(['list'], flutter), /agent-device/);
+
   // Existing applications retain their source, test scripts and custom fields.
   const existing = path.join(projectsDir, 'existing');
   fs.mkdirSync(existing);

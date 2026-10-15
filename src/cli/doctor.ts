@@ -41,7 +41,7 @@ export async function capabilityChecks(
     const fixes: string[] = [];
     const missingSkills: string[] = [];
     const versions: string[] = [];
-    for (const check of doctorChecks(capability)) {
+    for (const check of doctorChecks(capability, config.skills.sources)) {
       if (check.kind === 'file') {
         if (fileExists(path.join(targetDir, check.path))) continue;
         const skill = /^\.agents\/skills\/([^/]+)\/SKILL\.md$/.exec(check.path)?.[1];

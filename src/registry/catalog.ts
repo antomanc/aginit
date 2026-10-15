@@ -481,7 +481,7 @@ export const CATALOG: CapabilityDescriptor[] = [
     supportedPlatforms: ['all'],
     requiresNodeInProjectRoot: false,
     install: [
-      { kind: 'skills-sh', repo: 'tester-army/e2e', skills: ['e2e'] },
+      { kind: 'skills-sh', repo: 'tester-army/e2e', skills: ['e2e'], optional: true },
       { kind: 'setup', setup: 'e2e' }
     ],
     rebuttals: [
