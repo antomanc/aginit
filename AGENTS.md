@@ -17,13 +17,13 @@ Set up new or existing projects for AI coding agents in one command: AGENTS.md, 
 - Full check: `pnpm check` (typecheck, tests, build, audit)
 - Packed-CLI smoke: `pnpm smoke` (`--frameworks` also scaffolds Vite and Next.js)
 
+<!-- aginit:start — managed by npx @antomanc/aginit (re-run to refresh) -->
 ## Bootstrap & First Session
 When the user asks to "bootstrap this project" or kicks off a new initiative:
 1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.
 2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).
 3. Plan in small verifiable increments and implement test-first using installed skills.
 
-<!-- aginit:start — managed by npx @antomanc/aginit (re-run to refresh) -->
 ## Guardrails (karpathy-guidelines)
 - **Think before coding**: state assumptions and trade-offs; ask instead of guessing.
 - **Simplicity first**: minimum code that solves the problem; no speculative features or abstractions.
@@ -35,8 +35,7 @@ Load only what the task needs. Skills live in `.agents/skills/` (linked into `.c
 
 | Task | Read / Use |
 | --- | --- |
-| Product intent, scope, target users | `PRODUCT.md` |
-| Codebase exploration & impact analysis | `graft ask "<query>" --source` / `graft skeleton <file>` (see the Graft section) |
+| Codebase exploration & impact analysis | `trail ask "<query>" --source` / `trail skeleton <file>` (see the Trail section) |
 | Automated unit & E2E testing | `docs/agents/testing.md` |
 | Engineering workflow & skills | `docs/agents/workflows.md` |
 | Scoping or simplifying a change | `ponytail` skill |
@@ -45,7 +44,7 @@ Load only what the task needs. Skills live in `.agents/skills/` (linked into `.c
 ## Anti-Rationalization
 | Excuse | Rule |
 | --- | --- |
-| "I'll grep/read the whole folder to understand the module." | Forbidden. Query `graft ask "<query>" --source` or `graft callers <symbol>` first to save context tokens. |
+| "I'll grep/read the whole folder to understand the module." | Forbidden. Query `trail ask "<query>" --source` or `trail callers <symbol>` first to save context tokens. |
 | "Unit tests pass, so the feature works." | Insufficient. Unit tests do not verify wiring or rendering. Exercise the feature end to end (integration or smoke run) before marking complete. |
 <!-- aginit:end -->
 

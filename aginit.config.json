@@ -62,7 +62,7 @@
     ]
   },
   "codebase": {
-    "graft": true
+    "trail": true
   },
   "browser": {
     "visualAgent": false,
@@ -77,7 +77,7 @@
   "platform": "cli",
   "stack": "node",
   "capabilities": [
-    "graft",
+    "trail",
     "pocock",
     "ponytail",
     "humanizer",
