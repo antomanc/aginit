@@ -169,6 +169,27 @@ describe('Flutter project (native mobile, no Node at the root)', () => {
   });
 });
 
+describe('existing Python project (scalebridge)', () => {
+  const profile: ProfileFlags = { platform: 'backend', design: 'none', testing: 'native', uiDriver: 'none' };
+  beforeEach(() => {
+    fs.writeFileSync(file('pyproject.toml'), '[project]\nname = "app"\n\n[tool.ruff]\nline-length = 100\n');
+    fs.writeFileSync(file('uv.lock'), '');
+    fs.mkdirSync(file('tests'));
+    fs.writeFileSync(file('AGENTS.md'), '# app\n\nHand-written notes.\n');
+  });
+
+  it('documents uv, pytest, ruff and the tests/ layout without Node tooling', async () => {
+    await createProject('app', { ...options, targetDir: dir, graft: false, profile });
+    const testing = read('docs/agents/testing.md');
+    expect(testing).toContain('- Run: `uv run pytest`');
+    expect(testing).toContain('- Static checks: `uv run ruff check . && uv run ruff format --check .`');
+    expect(testing).toContain('Put tests in `tests/`, mirroring the module they cover.');
+    expect(testing).not.toContain('vitest');
+    expect(read('pyproject.toml')).toContain('extend-exclude = [".agents", ".claude"]');
+    expect(fs.existsSync(file('package.json'))).toBe(false);
+  });
+});
+
 describe('CLI / Node project (--platform cli --design none)', () => {
   it('skips design and UI tooling and keeps Vitest', async () => {
     await createProject('my-cli', {

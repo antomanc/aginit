@@ -442,7 +442,10 @@ export const CATALOG: CapabilityDescriptor[] = [
           `## Unit & integration tests: ${ctx.stack} toolchain`,
           `- Run: ${code(ctx.commands.test, 'the project test command')}`,
           ctx.commands.lint ? `- Static checks: \`${ctx.commands.lint}\`` : undefined,
-          '- Write the failing test first, then the code. Keep tests next to the module they cover, following the toolchain convention.'
+          '- Write the failing test first, then the code. ' +
+            (ctx.testDir
+              ? `Put tests in \`${ctx.testDir}/\`, mirroring the module they cover.`
+              : 'Place tests where the toolchain convention puts them.')
         ]
           .filter((line): line is string => line !== undefined)
           .join('\n')

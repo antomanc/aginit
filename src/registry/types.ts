@@ -55,6 +55,8 @@ export interface GuideContext {
   commands: ProjectCommands;
   /** Directory that holds the e2e workspace ('' for the project root). */
   e2eDir: string;
+  /** The project's top-level test directory (tests/ or test/), when it has one. */
+  testDir?: string;
 }
 
 export interface ProjectCommands {
