@@ -6,7 +6,7 @@ export * from './presets/types.js';
 export * from './adapters/package-manager.js';
 export * from './adapters/git.js';
 export * from './adapters/skills.js';
-export * from './adapters/graft.js';
+export * from './adapters/trail.js';
 export * from './adapters/agents-md.js';
 export * from './adapters/browser.js';
 export * from './adapters/agent-browser.js';

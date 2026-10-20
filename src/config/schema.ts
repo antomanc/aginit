@@ -19,7 +19,7 @@ export interface AginitConfig {
     primary: string;
     secondary: string;
     /**
-     * Also install skills, Graft wiring and a CLAUDE.md import for Claude Code.
+     * Also install skills, Trail wiring and a CLAUDE.md import for Claude Code.
      * Missing in configs written before 0.4.0; treated as enabled.
      */
     claudeCode?: boolean;
@@ -34,7 +34,7 @@ export interface AginitConfig {
     sources: SkillSourceConfig[];
   };
   codebase: {
-    graft: boolean;
+    trail: boolean;
   };
   browser: {
     visualAgent: boolean;

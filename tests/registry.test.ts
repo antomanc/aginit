@@ -55,7 +55,7 @@ describe('catalog', () => {
         expect(
           ids.filter((id) => CATALOG.find((c) => c.id === id)?.category === category).length
         ).toBeLessThanOrEqual(1);
-      expect(ids).toEqual(expect.arrayContaining(['graft', 'pocock', 'ponytail', 'karpathy-guidelines', 'humanizer']));
+      expect(ids).toEqual(expect.arrayContaining(['trail', 'pocock', 'ponytail', 'karpathy-guidelines', 'humanizer']));
     }
   });
 });
@@ -135,7 +135,7 @@ describe('resolveCapabilities', () => {
     const { capabilities } = resolveCapabilities({
       platform: 'mobile-native',
       stack: 'flutter',
-      base: ['graft', 'superpowers', 'vitest', 'context-mode'],
+      base: ['trail', 'superpowers', 'vitest', 'context-mode'],
       basePlatform: 'cli',
       flags: { platform: 'mobile-native' }
     });
@@ -158,16 +158,16 @@ describe('configs written before v2', () => {
 
   it('infer their capabilities from skill sources and switches', () => {
     expect(inferCapabilities(legacy())).toEqual(
-      expect.arrayContaining(['graft', 'pocock', 'humanizer', 'ponytail', 'impeccable', 'agent-browser', 'vitest', 'playwright'])
+      expect.arrayContaining(['trail', 'pocock', 'humanizer', 'ponytail', 'impeccable', 'agent-browser', 'vitest', 'playwright'])
     );
   });
 
-  it('still honor codebase.graft and the configured sources', () => {
+  it('still honor codebase.trail and the configured sources', () => {
     const config = legacy();
-    config.codebase.graft = false;
+    config.codebase.trail = false;
     config.skills.sources = config.skills.sources.filter((s) => s.package !== 'pbakaus/impeccable');
     const ids = activeCapabilities(config).map((c) => c.id);
-    expect(ids).not.toContain('graft');
+    expect(ids).not.toContain('trail');
     expect(ids).not.toContain('impeccable');
     expect(ids).toContain('agent-browser');
   });
@@ -211,13 +211,13 @@ describe('a capability added to the registry', () => {
     expect(output.join('\n')).toContain('mock-linter');
 
     output = [];
-    await createProject('mocked', { targetDir: dir, dryRun: true, git: false, graft: false });
+    await createProject('mocked', { targetDir: dir, dryRun: true, git: false, trail: false });
     const installs = shell.runExecutable.mock.calls.map((call) => call[1].join(' '));
     expect(installs.some((args) => args.includes('skills add mock/linter --skill mock-lint'))).toBe(true);
     expect(output.join('\n')).toContain('Mock Linter needs the `mocklint` CLI: npm i -g mocklint');
 
     // Write the config for real, then let doctor read it.
-    await createProject('mocked', { targetDir: dir, git: false, graft: false, skills: true, silent: true });
+    await createProject('mocked', { targetDir: dir, git: false, trail: false, skills: true, silent: true });
     output = [];
     await runDoctor(dir);
     const report = output.join('\n');

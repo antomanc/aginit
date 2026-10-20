@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { isInteractive, promptNewProject, promptInitProject } from '../src/cli/wizard.js';
+import { confirmSetup, isInteractive, promptNewProject, promptInitProject } from '../src/cli/wizard.js';
 import * as prompts from '@clack/prompts';
 import { createProject } from '../src/cli/new.js';
 import { createCliProgram } from '../src/cli/main.js';
@@ -117,7 +117,7 @@ describe('Wizard & Interactive Prompts', () => {
       });
       const answers = await promptInitProject({ targetDir: tmpDir });
       await createProject('app', {
-        ...answers, targetDir: tmpDir, skills: false, graft: false, git: false, silent: true
+        ...answers, targetDir: tmpDir, skills: false, trail: false, git: false, silent: true
       });
       const config = JSON.parse(fs.readFileSync(path.join(tmpDir, 'aginit.config.json'), 'utf8'));
       expect(config).toMatchObject({ platform: 'mobile-native', stack: 'flutter' });
@@ -152,6 +152,17 @@ describe('Wizard & Interactive Prompts', () => {
     expect(answers.profile.addons).toEqual(['chrome-devtools-mcp']);
     const options = vi.mocked(prompts.multiselect).mock.calls.at(-1)?.[0].options;
     expect(options?.map((option) => option.value)).toContain('context-mode');
+  });
+
+  it('discloses the codebase graph and its telemetry before applying the setup', async () => {
+    const answers = await promptInitProject({ preset: 'generic', packageManager: 'pnpm' });
+    await confirmSetup(answers);
+    expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain(
+      'Codebase graph: Trail. Codebase graph and team learnings'
+    );
+    expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain('trail telemetry disable');
+    await confirmSetup({ ...answers, profile: { ...answers.profile, without: ['trail'] } });
+    expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain('Codebase graph: None');
   });
 
   it('CLI handles no arguments cleanly in non-interactive mode', async () => {

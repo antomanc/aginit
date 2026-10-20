@@ -5,7 +5,7 @@ import { initCurrentDirectory } from './init.js';
 import { runDoctor } from './doctor.js';
 import { ensureClaudeSkillLinks, updateSkills } from '../adapters/skills.js';
 import { ignoreVendoredSkills } from '../adapters/tool-ignores.js';
-import { buildGraft } from '../adapters/graft.js';
+import { buildTrail } from '../adapters/trail.js';
 import { readProjectConfig } from '../config/validation.js';
 import { logger } from '../utils/logger.js';
 import { PresetType, WebFramework, PackageManager } from '../config/schema.js';
@@ -50,7 +50,7 @@ function withProfileOptions(command: Command): Command {
     .option('--ui-driver <driver>', 'UI driver: auto | agent-browser | agent-device | none')
     .option('--addons <ids>', 'Add-ons: context-mode, worktrunk, chrome-devtools-mcp, browserskill', list)
     .option('--add-skill <owner/repo>', 'Add a skill repository as a custom capability (repeatable)', list)
-    .option('--without <id>', 'Disable a capability, e.g. graft or humanizer (repeatable)', list);
+    .option('--without <id>', 'Disable a capability, e.g. trail or humanizer (repeatable)', list);
 }
 
 function profileFlags(options: any): ProfileFlags {
@@ -78,7 +78,7 @@ export function createCliProgram(): Command {
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun')
     .option('--no-skills', 'Skip installing AI skills')
-    .option('--no-graft', 'Skip codebase graph (Graft) setup')
+    .option('--no-trail', 'Skip codebase graph (Trail) setup')
     .option('--no-git', 'Skip git repository initialization')
     .option('--dry-run', 'Simulate setup without writing changes to disk')
     .option('-y, --yes', 'Initialize the current directory without prompts (saved or detected settings)');
@@ -101,7 +101,7 @@ export function createCliProgram(): Command {
       framework: options.framework as WebFramework | undefined,
       packageManager: options.packageManager as PackageManager | undefined,
       skills: options.skills,
-      graft: options.graft,
+      trail: options.trail,
       git: options.git,
       dryRun: options.dryRun,
       profile: profileFlags(options)
@@ -117,7 +117,7 @@ export function createCliProgram(): Command {
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing', 'none')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun', 'pnpm')
     .option('--no-skills', 'Skip installing AI skills')
-    .option('--no-graft', 'Skip codebase graph (Graft) setup')
+    .option('--no-trail', 'Skip codebase graph (Trail) setup')
     .option('--no-git', 'Skip git repository initialization')
     .option('--dry-run', 'Simulate creation without writing changes to disk');
   withProfileOptions(newCommand)
@@ -159,7 +159,7 @@ export function createCliProgram(): Command {
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
         skills: options.skills,
-        graft: options.graft,
+        trail: options.trail,
         git: options.git,
         dryRun: options.dryRun,
         profile: finalProfile
@@ -175,7 +175,7 @@ export function createCliProgram(): Command {
     .option('-f, --framework <framework>', 'Web framework: none | vite | next | existing')
     .option('-m, --package-manager <pm>', 'Package manager: pnpm | npm | yarn | bun')
     .option('--no-skills', 'Skip installing AI skills')
-    .option('--no-graft', 'Skip codebase graph (Graft) setup')
+    .option('--no-trail', 'Skip codebase graph (Trail) setup')
     .option('--no-git', 'Skip git repository initialization')
     .option('--dry-run', 'Simulate setup without writing changes to disk')
     .option('-y, --yes', 'Skip the prompts and use saved or detected settings');
@@ -209,7 +209,7 @@ export function createCliProgram(): Command {
         framework: finalFramework as WebFramework,
         packageManager: finalPackageManager as PackageManager,
         skills: options.skills,
-        graft: options.graft,
+        trail: options.trail,
         git: options.git,
         dryRun: options.dryRun,
         profile: finalProfile
@@ -278,16 +278,16 @@ export function createCliProgram(): Command {
         const advice = ignoreVendoredSkills(targetDir, { dryRun: options.dryRun, silent: true });
         for (const line of advice) logger.warn(line);
       }
-      const graftOk =
-        config?.codebase.graft === false
+      const trailOk =
+        config?.codebase.trail === false
           ? true
-          : await buildGraft(targetDir, { dryRun: options.dryRun });
-      if (skillsOk && graftOk) logger.success('Update finished.');
+          : await buildTrail(targetDir, { dryRun: options.dryRun });
+      if (skillsOk && trailOk) logger.success('Update finished.');
       else {
         if (!skillsOk) logger.warn('Skills update failed. Check connectivity and the skills CLI.');
-        if (!graftOk)
+        if (!trailOk)
           logger.warn(
-            'Graft refresh failed or Graft is unavailable. Check installation and rerun graft build.'
+            'Trail refresh failed or Trail is unavailable. Check installation and rerun trail build.'
           );
         process.exitCode = 1;
       }

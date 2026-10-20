@@ -14,9 +14,9 @@ Each integrated upstream tool is governed by its respective authors and licenses
 
 ## Codebase graph
 
-- **Graft** (now part of Trail-Code)
-  - Project: Codebase understanding & context graph CLI (`@nanonets/graft`)
-  - Author: NanoNets / Trail and Graft contributors
+- **Trail** (formerly Graft)
+  - Project: Codebase context graph and team learnings CLI (`@trailhq/trail-code`, formerly `@nanonets/graft`)
+  - Author: Trail and Graft contributors
   - License: MIT
   - Repository: https://github.com/trailhq/Trail-Code (formerly NanoNets/context-graph-engine)
 

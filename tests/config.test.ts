@@ -18,7 +18,7 @@ describe('Configuration & Defaults', () => {
     expect(config.browser.visualAgent).toBe(true);
     // When framework is 'none', no unusable Playwright E2E is configured by default
     expect(config.browser.playwright).toBe(false);
-    expect(config.codebase.graft).toBe(true);
+    expect(config.codebase.trail).toBe(true);
 
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
     expect(mattSource).toBeDefined();
@@ -99,7 +99,7 @@ describe('Configuration & Defaults', () => {
     expect(config.preset).toBe('cli');
     expect(config.packageManager).toBe('pnpm');
     expect(config.browser.playwright).toBe(false);
-    expect(config.codebase.graft).toBe(true);
+    expect(config.codebase.trail).toBe(true);
 
     const mattSource = config.skills.sources.find((s) => s.package === 'mattpocock/skills');
     expect(mattSource?.skills).toEqual([...MATT_POCOCK_SKILLS]);

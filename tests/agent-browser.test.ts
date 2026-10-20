@@ -227,7 +227,7 @@ describe('createProject provisioning', () => {
       preset: 'web',
       targetDir: dir,
       git: false,
-      graft: false,
+      trail: false,
       silent: true
     });
     expect(ok).toBe(true);
@@ -249,7 +249,7 @@ describe('createProject provisioning', () => {
       skills: false,
       targetDir: dir,
       git: false,
-      graft: false,
+      trail: false,
       silent: true
     });
     expect(shell.runExecutable).not.toHaveBeenCalledWith('npm', expect.anything(), expect.anything());
@@ -269,7 +269,7 @@ describe('createProject provisioning', () => {
       skills: false,
       targetDir: dir,
       git: false,
-      graft: false,
+      trail: false,
       silent: true
     });
     expect(shell.runExecutable).toHaveBeenCalledWith(
@@ -289,7 +289,7 @@ describe('createProject provisioning', () => {
         preset: 'web',
         targetDir: dir,
         git: false,
-        graft: false,
+        trail: false,
         silent: true
       })
     ).resolves.toBe(false);
@@ -301,7 +301,7 @@ describe('createProject provisioning', () => {
       preset: 'web',
       targetDir: path.join(dir, 'web'),
       git: false,
-      graft: false,
+      trail: false,
       silent: false
     });
     expect(strip(output())).toContain('Provisioning agent-browser runtime');
@@ -313,7 +313,7 @@ describe('createProject provisioning', () => {
       skills: false,
       targetDir: path.join(dir, 'cli'),
       git: false,
-      graft: false,
+      trail: false,
       silent: false
     });
     expect(strip(output())).not.toContain('Provisioning agent-browser runtime');

@@ -183,11 +183,11 @@ export function mergeAgentsBlock(existing: string, block: string): string {
       return existing.slice(0, startMatch.index) + block + existing.slice(endOffset);
     }
   }
-  // Above Graft's block when there is one, so Graft keeps owning the end of the file.
-  const graftMatch = existing.match(/<!--\s*graft:start(?:\b[^>]*)?-->/);
-  if (graftMatch && graftMatch.index !== undefined) {
-    const graft = graftMatch.index;
-    return existing.slice(0, graft).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(graft);
+  // Above Trail's block (graft's before it) when there is one, so Trail keeps owning the end of the file.
+  const trailMatch = existing.match(/<!--\s*(?:trail|graft):start(?:\b[^>]*)?-->/);
+  if (trailMatch && trailMatch.index !== undefined) {
+    const trail = trailMatch.index;
+    return existing.slice(0, trail).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(trail);
   }
   return existing.trimEnd() + '\n\n' + block + '\n';
 }

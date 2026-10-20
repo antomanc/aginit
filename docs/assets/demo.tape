@@ -1,5 +1,5 @@
 # From the repo root: pnpm build && vhs docs/assets/demo.tape
-# Requires vhs, ttyd, ffmpeg, JetBrains Mono, graft, agent-browser and network access.
+# Requires vhs, ttyd, ffmpeg, JetBrains Mono, trail, agent-browser and network access.
 # npx aginit resolves to our local build; all setup/doctor output is real.
 Output docs/assets/demo.gif
 

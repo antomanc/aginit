@@ -264,11 +264,11 @@ function mergeSources(
 
 /**
  * Capabilities a config written before v2 (no `capabilities` field) uses:
- * the ones whose skills it installs, plus Graft and its test harness.
+ * the ones whose skills it installs, plus Trail and its test harness.
  */
 export function inferCapabilities(config: AginitConfig): string[] {
   const ids: string[] = [];
-  if (config.codebase.graft) ids.push('graft');
+  if (config.codebase.trail) ids.push('trail');
   for (const capability of CATALOG) {
     const steps = skillSteps(capability);
     if (
@@ -297,7 +297,7 @@ export function activeCapabilities(config: AginitConfig): CapabilityDescriptor[]
     .filter((c): c is CapabilityDescriptor => c !== undefined)
     .filter((capability) => {
       // The legacy switches still turn their capability off.
-      if (capability.id === 'graft' && config.codebase.graft === false) return false;
+      if (capability.id === 'trail' && config.codebase.trail === false) return false;
       if (capability.id === 'playwright' && !config.browser.playwright) return false;
       // Skills only install from configured sources (`--no-skills` empties them).
       const steps = skillSteps(capability).filter((step) => !step.optional);
@@ -314,7 +314,7 @@ export function activeIds(config: AginitConfig): Set<string> {
 
 /** Keep the pre-v2 switches in step with the capability list. */
 function mirrorLegacySwitches(config: AginitConfig, ids: string[]): void {
-  config.codebase = { ...config.codebase, graft: ids.includes('graft') };
+  config.codebase = { ...config.codebase, trail: ids.includes('trail') };
   config.browser = {
     ...config.browser,
     visualAgent: ids.includes('agent-browser'),

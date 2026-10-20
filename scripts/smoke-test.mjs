@@ -29,7 +29,7 @@ function run(bin, args, cwd, options = {}) {
 function manifest(dir) {
   return JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
 }
-const flags = ['--no-skills', '--no-graft'];
+const flags = ['--no-skills', '--no-trail'];
 async function serve(dir, preset) {
   const server = spawn(
     npm,
