@@ -103,9 +103,52 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('\n\n## Essential Commands');
     expect(md).toContain(`\n\n${AGINIT_BLOCK_START}`);
     expect(md).toContain('\n\n## Task Routing');
-    expect(md).toContain('\n\n## Bootstrap & First Session');
+    expect(md).toContain(`${AGINIT_BLOCK_START}\n## Bootstrap & First Session`);
     expect(md).not.toContain('\n\n\n');
     expect(md.endsWith('\n')).toBe(true);
+  });
+
+  it('moves a legacy bootstrap section into the block and keeps an edited one', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agents-test-'));
+    try {
+      const agentsFile = path.join(tempDir, 'AGENTS.md');
+      const legacy =
+        '## Bootstrap & First Session\nWhen the user asks to "bootstrap this project" or kicks off a new initiative:\n' +
+        '1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.\n' +
+        '2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).\n' +
+        '3. Plan in small verifiable increments and implement test-first using installed skills.\n';
+      const config = getDefaultConfig('demo', 'cli');
+      fs.writeFileSync(agentsFile, `# Notes\n\n${AGINIT_BLOCK_START}\nold\n${AGINIT_BLOCK_END}\n\n${legacy}`);
+      setupAgentsMarkdown(tempDir, config, { silent: true });
+      const migrated = fs.readFileSync(agentsFile, 'utf-8');
+      expect(migrated.match(/## Bootstrap & First Session/g)).toHaveLength(1);
+      expect(migrated).toContain(`${AGINIT_BLOCK_START}\n## Bootstrap & First Session`);
+      expect(migrated.endsWith(`${AGINIT_BLOCK_END}\n`)).toBe(true);
+      setupAgentsMarkdown(tempDir, config, { silent: true });
+      expect(fs.readFileSync(agentsFile, 'utf-8')).toBe(migrated);
+
+      const edited = legacy.replace('2-3', 'a few');
+      fs.writeFileSync(agentsFile, `# Notes\n\n${edited}`);
+      setupAgentsMarkdown(tempDir, config, { silent: true });
+      expect(fs.readFileSync(agentsFile, 'utf-8')).toContain(edited);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('routes to PRODUCT.md only when it exists or a design capability writes it', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agents-test-'));
+    try {
+      const row = '| Product intent, scope, target users | `PRODUCT.md` |';
+      const cli = getDefaultConfig('demo-cli', 'cli');
+      cli.capabilities = cli.capabilities?.filter((id) => id !== 'impeccable');
+      expect(generateAgentsMarkdown(cli, undefined, tempDir)).not.toContain(row);
+      expect(generateAgentsMarkdown(getDefaultConfig('demo-web', 'web'), undefined, tempDir)).toContain(row);
+      fs.writeFileSync(path.join(tempDir, 'PRODUCT.md'), '# Product\n');
+      expect(generateAgentsMarkdown(cli, undefined, tempDir)).toContain(row);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('reports skills as disabled only when no source is configured', () => {

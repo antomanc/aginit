@@ -15,7 +15,7 @@ import {
   getInstalledSkills,
   getSkillsMissingForClaude
 } from '../adapters/skills.js';
-import { claudeMarkdownImportsAgents } from '../adapters/agents-md.js';
+import { AGINIT_START_PATTERN, claudeMarkdownImportsAgents } from '../adapters/agents-md.js';
 import {
   agentBrowserStubInstalled,
   findUsernsRestriction,
@@ -229,21 +229,21 @@ export async function runDoctor(targetDir: string = process.cwd()): Promise<void
   const agentsPath = path.join(targetDir, 'AGENTS.md');
   const agentsExists = fileExists(agentsPath);
   const agentsContent = agentsExists ? readTextFile(agentsPath) || '' : '';
-  const hasIntakeSection = agentsContent.includes('Bootstrap & First Session');
+  const hasBlock = AGINIT_START_PATTERN.test(agentsContent);
 
   checks.push({
     name: 'AGENTS.md Context',
     category: 'Project Config',
-    ok: agentsExists && hasIntakeSection,
+    ok: agentsExists && hasBlock,
     detail: agentsExists
-      ? hasIntakeSection
-        ? 'AGENTS.md present with intake/bootstrap guidance'
-        : 'AGENTS.md present but missing intake guidance'
+      ? hasBlock
+        ? 'AGENTS.md present with the aginit block'
+        : 'AGENTS.md present but missing the aginit block'
       : 'AGENTS.md not found in directory',
     suggestion: !agentsExists
       ? 'Run `aginit init` to generate standard AGENTS.md'
-      : !hasIntakeSection
-        ? 'Run `aginit init` to add intake section to AGENTS.md'
+      : !hasBlock
+        ? 'Run `aginit init` to add the aginit block to AGENTS.md'
         : undefined
   });
 

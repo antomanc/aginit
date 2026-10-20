@@ -187,6 +187,10 @@ describe('existing Python project (scalebridge)', () => {
     expect(testing).not.toContain('vitest');
     expect(read('pyproject.toml')).toContain('extend-exclude = [".agents", ".claude"]');
     expect(fs.existsSync(file('package.json'))).toBe(false);
+
+    const agents = read('AGENTS.md');
+    expect(agents.startsWith('# app\n\nHand-written notes.\n\n' + AGINIT_BLOCK_START + '\n## Bootstrap')).toBe(true);
+    expect(agents).not.toContain('`PRODUCT.md` |');
   });
 });
 
