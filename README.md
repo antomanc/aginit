@@ -38,7 +38,7 @@ aginit sets all of this up the same way every time, and you can re-run it whenev
 |---|---|
 | **Instructions** | A lean `AGENTS.md`: invariants, the project's real commands, Karpathy guardrails, a **Task Routing** table and an **Anti-Rationalization** table. Details live in `docs/agents/testing.md`, `ui-verification.md` and `workflows.md`, which agents load only when the task needs them. A one-line `CLAUDE.md` (`@AGENTS.md`) makes Claude Code read it too |
 | **Skills** | One methodology ([Matt Pocock skills](https://github.com/mattpocock/skills) by default, or [Superpowers](https://github.com/obra/superpowers), or none) plus [ponytail](https://github.com/DietrichGebert/ponytail), [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and [humanizer](https://github.com/blader/humanizer). Installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills), linked into `.claude/skills/` |
-| **Codebase graph** | [Graft](https://www.npmjs.com/package/@nanonets/graft): `graft map` and `graft ask` give agents the relevant code spans before they grep |
+| **Codebase graph** | [Trail](https://github.com/trailhq/Trail-Code) (formerly Graft): `trail map` and `trail ask` give agents the relevant code spans before they grep, and sessions leave shared learnings in `.trail/learnings/` |
 | **Design** | [Impeccable](https://github.com/pbakaus/impeccable) on web and mobile (`/impeccable init`, `audit`, `polish`). It needs no Node, so it works in Flutter, Swift and Kotlin repos |
 | **UI verification** | [agent-browser](https://github.com/vercel-labs/agent-browser) for web, [agent-device](https://github.com/callstack/agent-device) for iOS Simulator and Android Emulator. Optional: [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), [BrowserSkill](https://github.com/Tencent/BrowserSkill) |
 | **Testing** | Vitest (+ Playwright with a web framework) for Node projects, the host runner (`flutter test`, `cargo test`, ...) otherwise, and optionally [e2e](https://github.com/tester-army/e2e), natural-language E2E tests with a zero-cost replay cache |
@@ -63,11 +63,14 @@ and walks you through platform, methodology, design, testing, UI driver, and add
 a setup summary before writing any files. Existing projects keep the package manager they
 already use.
 
-Graft is installed separately (or skip it with `--no-graft`):
+Trail is installed separately (or skip it with `--no-trail`):
 
 ```bash
-npm install -g @nanonets/graft
+npm install -g @trailhq/trail-code
 ```
+
+Trail sends anonymous usage stats by default. Turn them off with `trail telemetry disable` or
+`DO_NOT_TRACK=1`. Projects set up with Graft move to Trail on the next `aginit init`.
 
 ## Commands
 
@@ -79,7 +82,7 @@ aginit list                 Show the capability registry and what this project e
 aginit add <id|owner/repo>  Enable capabilities (installs skills, refreshes AGENTS.md and docs)
 aginit remove <id>          Disable capabilities and remove their skills
 aginit doctor               Check the environment and every active capability
-aginit update               Update installed skills and rebuild the Graft index
+aginit update               Update installed skills and rebuild the Trail index
 ```
 
 Bare `aginit` opens the wizard in a terminal and prints help elsewhere. The wizard detects your stack,
@@ -88,7 +91,7 @@ Initializing an existing directory preserves its stack; Node-only tools are hidd
 `--yes`, to initialize without prompts.
 
 Setup flags: `--preset web|cli|generic`, `--framework none|vite|next|existing`,
-`--package-manager pnpm|npm|yarn|bun`, `--dry-run`, `--yes`, `--no-skills`, `--no-graft`, `--no-git`.
+`--package-manager pnpm|npm|yarn|bun`, `--dry-run`, `--yes`, `--no-skills`, `--no-trail`, `--no-git`.
 
 Capability flags (the platform is detected; flags override it):
 
@@ -101,7 +104,7 @@ Capability flags (the platform is detected; flags override it):
 | `--ui-driver` | `auto`, `agent-browser`, `agent-device`, `chrome-devtools-mcp`, `browserskill`, `none` |
 | `--addons` | `context-mode`, `worktrunk`, `chrome-devtools-mcp`, `browserskill` (comma-separated) |
 | `--add-skill` | any `owner/repo` skill repository (repeatable) |
-| `--without` | any capability id, e.g. `graft` or `humanizer` (repeatable) |
+| `--without` | any capability id, e.g. `trail` or `humanizer` (repeatable) |
 
 ### Examples
 
@@ -133,7 +136,7 @@ aginit list
 | --- | --- |
 | `web` | TypeScript and Vitest, with optional Vite or Next.js scaffolding. Playwright is added when a web framework is selected. |
 | `cli` | Node.js/TypeScript CLI with Commander, Picocolors and Vitest. |
-| `generic` | Git, `AGENTS.md`, skills and Graft. Leaves an existing `package.json` untouched. |
+| `generic` | Git, `AGENTS.md`, skills and Trail. Leaves an existing `package.json` untouched. |
 
 The web preset's `--framework none` (default) creates a TypeScript baseline without a bundler
 or browser tests. `existing` keeps the framework you already have.
@@ -180,7 +183,7 @@ dependency versions and test configs, and only adds what's missing. If you alrea
 different test runner, aginit adds a separate `test:unit` script instead of touching yours.
 
 An existing `AGENTS.md` is preserved. aginit adds its managed block between
-`<!-- aginit:start -->` and `<!-- aginit:end -->`, above Graft's block, and refreshes only that
+`<!-- aginit:start -->` and `<!-- aginit:end -->`, above Trail's block, and refreshes only that
 block afterwards. The `docs/agents/` pages carry a marker line; delete it and aginit leaves
 that page to you. Configs from older versions keep loading unchanged. Their capabilities are
 inferred from `skills.sources` and the `codebase`/`browser` switches until you run
@@ -188,7 +191,7 @@ inferred from `skills.sources` and the `codebase`/`browser` switches until you r
 
 ## Design
 
-- **Orchestrates, doesn't vendor.** Skills, Graft, e2e, Vite, Next.js and Playwright come
+- **Orchestrates, doesn't vendor.** Skills, Trail, e2e, Vite, Next.js and Playwright come
   from their upstream tools. aginit picks good defaults and runs them. CLIs it does not
   install itself (agent-device, context-mode, `wt`, `bsk`) are checked, and the upstream
   install command is printed.
@@ -196,7 +199,7 @@ inferred from `skills.sources` and the `codebase`/`browser` switches until you r
 - **Honest dry-run.** `--dry-run` lists every planned operation without writing files or
   downloading tools. (Files produced by upstream scaffolders are only known after they run.)
 - **Fails loudly.** Invalid config is reported before any file changes. A failed scaffold
-  stops the command; missing Graft, a failed skill install or a failed agent-browser setup
+  stops the command; missing Trail, a failed skill install or a failed agent-browser setup
   exits nonzero and keeps the scaffold, so you can fix it and re-run `aginit init`.
 - **Hands off your system.** If the Linux kernel blocks Chrome's sandbox (`No usable
   sandbox!`), aginit tells you the sysctl fix and the narrower `--no-sandbox` option. It

@@ -4,7 +4,7 @@ import { AGINIT_CONFIG_FILENAME, AginitConfig } from '../config/schema.js';
 import { readProjectConfig, validateConfig } from '../config/validation.js';
 import { resolvePlatformStack } from '../adapters/agent-docs.js';
 import { installAllSkills, removeSkills, skillAgents } from '../adapters/skills.js';
-import { uninstallGraft } from '../adapters/graft.js';
+import { uninstallTrail } from '../adapters/trail.js';
 import { ignoreVendoredSkills } from '../adapters/tool-ignores.js';
 import {
   activeIds,
@@ -121,8 +121,8 @@ export async function changeCapabilities(
   const next = validateConfig(
     applyResolvedProfile({ ...config, platform, stack }, resolved, { skills: true, previous })
   );
-  // Adding graft or playwright turns their legacy switch back on.
-  if (next.capabilities?.includes('graft')) next.codebase.graft = true;
+  // Adding trail or playwright turns their legacy switch back on.
+  if (next.capabilities?.includes('trail')) next.codebase.trail = true;
 
   const after = activeIds(next);
   const nextCatalog = catalogFor(next);
@@ -141,9 +141,9 @@ export async function changeCapabilities(
   let ok = true;
 
   ok = (await removeSkills(targetDir, skillsOf(removed), { dryRun, silent })) && ok;
-  if (removed.some((c) => c.id === 'graft')) await uninstallGraft(targetDir, { dryRun, silent });
+  if (removed.some((c) => c.id === 'trail')) await uninstallTrail(targetDir, { dryRun, silent });
   const leftovers = removed.filter((c) =>
-    c.install.some((s) => s.kind === 'setup' && s.setup !== 'graft')
+    c.install.some((s) => s.kind === 'setup' && s.setup !== 'trail')
   );
   if (!silent)
     for (const c of leftovers)
@@ -166,7 +166,7 @@ export async function changeCapabilities(
 
   syncAgentDocs(targetDir, next, { dryRun, silent });
   if (!silent)
-    for (const { name, bin, install } of await missingBinaries(added, ['graft', 'agent-browser', 'e2e']))
+    for (const { name, bin, install } of await missingBinaries(added, ['trail', 'agent-browser', 'e2e']))
       logger.warn(`${name} needs the \`${bin}\` CLI: ${install}`);
   if (!silent) {
     if (ok) logger.success('Capabilities updated. AGENTS.md and docs/agents/ are in sync.');

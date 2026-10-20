@@ -14,7 +14,7 @@ export type CapabilityCategory =
   | 'methodology' // pocock, superpowers, minimal
   | 'discipline' // ponytail, karpathy-guidelines, humanizer
   | 'design' // impeccable
-  | 'codebase-graph' // graft
+  | 'codebase-graph' // trail
   | 'ui-driver' // agent-browser, agent-device, chrome-devtools-mcp, browserskill
   | 'testing-engine' // e2e, playwright, vitest, native
   | 'context-guard' // context-mode, worktrunk
@@ -39,7 +39,7 @@ export type InstallStep =
  * Setups that run an upstream init command. vitest and playwright have none:
  * the presets add them to package.json when they are active.
  */
-export type SetupId = 'graft' | 'agent-browser' | 'e2e';
+export type SetupId = 'trail' | 'agent-browser' | 'e2e';
 
 export type DoctorCheck =
   | { kind: 'file'; path: string; fix: string }
@@ -55,6 +55,8 @@ export interface GuideContext {
   commands: ProjectCommands;
   /** Directory that holds the e2e workspace ('' for the project root). */
   e2eDir: string;
+  /** The project's top-level test directory (tests/ or test/), when it has one. */
+  testDir?: string;
 }
 
 export interface ProjectCommands {

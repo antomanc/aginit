@@ -201,16 +201,20 @@ async function promptProfile(
   return { ...flags, platform, methodology, design, testing: testing as ProfileFlags['testing'], uiDriver, addons };
 }
 
-async function confirmSetup(answers: WizardInitAnswers): Promise<boolean> {
+export async function confirmSetup(answers: WizardInitAnswers): Promise<boolean> {
   const profile = answers.profile;
   const name = (id: string | undefined) => CATALOG.find((c) => c.id === id)?.name ?? id;
+  const graph = CATALOG.find(
+    (c) => c.category === 'codebase-graph' && c.default && !profile.without?.includes(c.id)
+  );
   p.note([
     `Platform: ${profile.platform}`,
     `Methodology: ${name(profile.methodology)}`,
     `Design: ${name(profile.design)}`,
     `Testing: ${name(profile.testing)}`,
     `UI driver: ${name(profile.uiDriver)}`,
-    `Add-ons: ${profile.addons?.map(name).join(', ') || 'None'}`
+    `Add-ons: ${profile.addons?.map(name).join(', ') || 'None'}`,
+    `Codebase graph: ${graph ? `${graph.name}. ${graph.description}` : 'None'}`
   ].join('\n'), 'Setup');
   return assertNotCancelled(await p.confirm({ message: 'Apply this setup?', initialValue: true }));
 }
@@ -231,7 +235,7 @@ export async function runInteractiveWizard(): Promise<void> {
         {
           value: 'init',
           label: 'Current directory',
-          hint: 'Add AGENTS.md, skills & Graft safely'
+          hint: 'Add AGENTS.md, skills & Trail safely'
         }
       ]
     })

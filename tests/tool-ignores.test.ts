@@ -101,4 +101,41 @@ describe('ignoreVendoredSkills', () => {
       'add "!!**/.agents", "!!**/.claude" to files.includes in biome.jsonc'
     );
   });
+
+  it('excludes vendored dirs under [tool.ruff] in pyproject.toml once (scalebridge)', () => {
+    write(
+      'pyproject.toml',
+      '[project]\nname = "x"\n\n[tool.black]\nextend-exclude = "build"\n\n[tool.ruff]\nline-length = 100\n\n[tool.ruff.lint]\nselect = ["E"]\n'
+    );
+    expect(ignoreVendoredSkills(dir, { silent: true })).toEqual([]);
+    ignoreVendoredSkills(dir, { silent: true });
+    expect(read('pyproject.toml')).toContain(
+      '[tool.ruff]\nextend-exclude = [".agents", ".claude"]  # vendored agent skills (aginit)\nline-length = 100\n'
+    );
+    expect(vendoredSkillsExposure(dir)).toEqual([]);
+  });
+
+  it('prefers ruff.toml and leaves pyproject.toml alone', () => {
+    write('pyproject.toml', '[tool.ruff]\nline-length = 100\n');
+    write('ruff.toml', '[lint]\nselect = ["E"]\n');
+    ignoreVendoredSkills(dir, { silent: true });
+    expect(read('ruff.toml')).toBe(
+      'extend-exclude = [".agents", ".claude"]  # vendored agent skills (aginit)\n[lint]\nselect = ["E"]\n'
+    );
+    expect(read('pyproject.toml')).toBe('[tool.ruff]\nline-length = 100\n');
+  });
+
+  it('advises instead of editing an existing ruff extend-exclude', () => {
+    write('pyproject.toml', '[tool.ruff]\nextend-exclude = ["build"]\n');
+    expect(ignoreVendoredSkills(dir, { silent: true })[0]).toContain(
+      'add extend-exclude = [".agents", ".claude"] to [tool.ruff] in pyproject.toml'
+    );
+    expect(read('pyproject.toml')).toBe('[tool.ruff]\nextend-exclude = ["build"]\n');
+  });
+
+  it('ignores a pyproject.toml that does not configure ruff', () => {
+    write('pyproject.toml', '[project]\nname = "x"\n');
+    expect(ignoreVendoredSkills(dir, { silent: true })).toEqual([]);
+    expect(read('pyproject.toml')).toBe('[project]\nname = "x"\n');
+  });
 });

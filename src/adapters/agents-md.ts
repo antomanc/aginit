@@ -32,8 +32,14 @@ const BOOTSTRAP_SECTION = [
   'When the user asks to "bootstrap this project" or kicks off a new initiative:',
   '1. Understand product intent and ask 2-3 essential questions to resolve ambiguity.',
   '2. Draft or refine canonical context in `PRODUCT.md` and `DESIGN.md` (or `docs/adr/`).',
-  '3. Plan in small verifiable increments and implement test-first using installed skills.'
+  '3. Plan in small verifiable increments and implement test-first using installed skills.',
+  ''
 ];
+/** Older releases appended the section after the managed block; it now lives inside. */
+const LEGACY_BOOTSTRAP = new RegExp(
+  '\\n*' + BOOTSTRAP_SECTION.join('\n').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\n*',
+  'g'
+);
 
 /** Placeholder scripts used when AGENTS.md is rendered without a package.json to read. */
 function presetScripts(config: AginitConfig): Record<string, string> {
@@ -55,12 +61,14 @@ const table = (head: [string, string], rows: Array<[string, string]>) => [
 export function renderAgentsBlock(
   config: AginitConfig,
   profile: ProjectProfile,
-  docs: MicroDoc[] = plannedMicroDocs(profile)
+  options: { docs?: MicroDoc[]; targetDir?: string } = {}
 ): string {
+  const { docs = plannedMicroDocs(profile), targetDir } = options;
   const hasSkills = config.skills.sources.length > 0;
-  const routing: Array<[string, string]> = [
-    ['Product intent, scope, target users', '`PRODUCT.md`']
-  ];
+  const routing: Array<[string, string]> = [];
+  // Only route to PRODUCT.md when it exists or a design capability will write it.
+  if ((targetDir && fileExists(path.join(targetDir, 'PRODUCT.md'))) || profile.active.some((c) => c.category === 'design'))
+    routing.push(['Product intent, scope, target users', '`PRODUCT.md`']);
   const order = ['design', 'codebase-graph'];
   const rank = (c: CapabilityDescriptor) => (order.indexOf(c.category) + order.length + 1) % (order.length + 1);
   const direct = profile.active.filter((c) => c.routing).sort((a, b) => rank(a) - rank(b));
@@ -89,6 +97,7 @@ export function renderAgentsBlock(
 
   const lines = [
     AGINIT_BLOCK_START,
+    ...BOOTSTRAP_SECTION,
     ...(profile.has('karpathy-guidelines')
       ? [
           '## Guardrails (karpathy-guidelines)',
@@ -157,9 +166,7 @@ export function generateAgentsMarkdown(
     '## Essential Commands',
     ...(commandLines.length ? commandLines : ['- Add the build and test commands here once they exist.']),
     '',
-    renderAgentsBlock(config, profile),
-    '',
-    ...BOOTSTRAP_SECTION,
+    renderAgentsBlock(config, profile, { targetDir }),
     ''
   ];
   return sections.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
@@ -176,11 +183,11 @@ export function mergeAgentsBlock(existing: string, block: string): string {
       return existing.slice(0, startMatch.index) + block + existing.slice(endOffset);
     }
   }
-  // Above Graft's block when there is one, so Graft keeps owning the end of the file.
-  const graftMatch = existing.match(/<!--\s*graft:start(?:\b[^>]*)?-->/);
-  if (graftMatch && graftMatch.index !== undefined) {
-    const graft = graftMatch.index;
-    return existing.slice(0, graft).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(graft);
+  // Above Trail's block (graft's before it) when there is one, so Trail keeps owning the end of the file.
+  const trailMatch = existing.match(/<!--\s*(?:trail|graft):start(?:\b[^>]*)?-->/);
+  if (trailMatch && trailMatch.index !== undefined) {
+    const trail = trailMatch.index;
+    return existing.slice(0, trail).trimEnd() + '\n\n' + block + '\n\n' + existing.slice(trail);
   }
   return existing.trimEnd() + '\n\n' + block + '\n';
 }
@@ -197,9 +204,9 @@ export function setupAgentsMarkdown(
     const existing = readTextFile(filePath) || '';
     const scripts = readPackageManifest(targetDir)?.scripts;
     const profile = projectProfile(config, { targetDir, scripts });
-    let updated = mergeAgentsBlock(existing, renderAgentsBlock(config, profile, options.docs));
-    if (!updated.includes('## Bootstrap & First Session'))
-      updated = updated.trimEnd() + '\n\n' + BOOTSTRAP_SECTION.join('\n') + '\n';
+    const legacyFree = existing.replace(LEGACY_BOOTSTRAP, '\n\n').replace(/\n+$/, '\n');
+    const block = renderAgentsBlock(config, profile, { docs: options.docs, targetDir });
+    const updated = mergeAgentsBlock(legacyFree, block);
     if (updated === existing) {
       if (!silent) logger.dim('AGENTS.md is up to date, preserving content.');
       return true;

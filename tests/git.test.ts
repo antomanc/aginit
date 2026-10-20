@@ -15,7 +15,7 @@ describe('Git Adapter', () => {
 
       const gitignore = fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8');
       expect(gitignore).toContain('node_modules/');
-      expect(gitignore).toContain('/graft/');
+      expect(gitignore).not.toContain('graft');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -32,7 +32,7 @@ describe('Git Adapter', () => {
       const gitignore = fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8');
       expect(gitignore).toContain('# Custom ignore rule');
       expect(gitignore).toContain('*.custom');
-      expect(gitignore).toContain('/graft/');
+      expect(gitignore).toContain('dist/');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

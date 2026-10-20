@@ -48,7 +48,7 @@ describe('CLI Project Creation', () => {
       const ok = await createProject('test-generic', {
         preset: 'generic',
         skills: false,
-        graft: false,
+        trail: false,
         targetDir: tempDir,
         silent: true
       });
@@ -75,7 +75,7 @@ describe('CLI Project Creation', () => {
         preset: 'cli',
         packageManager: 'npm',
         skills: false,
-        graft: false,
+        trail: false,
         targetDir: tempDir,
         silent: true
       });
@@ -96,7 +96,7 @@ describe('CLI Project Creation', () => {
       const ok = await createProject('test-web-none', {
         preset: 'web',
         skills: false,
-        graft: false,
+        trail: false,
         targetDir: tempDir,
         silent: true
       });
@@ -124,7 +124,7 @@ describe('CLI Project Creation', () => {
         preset: 'web',
         framework: 'vite',
         skills: false,
-        graft: false,
+        trail: false,
         targetDir: tempDir,
         silent: true
       });

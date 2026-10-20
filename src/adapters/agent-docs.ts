@@ -39,6 +39,7 @@ export function projectProfile(
   options: { targetDir?: string; scripts?: Record<string, string> } = {}
 ): ProjectProfile {
   const { platform, stack } = resolvePlatformStack(config, options.targetDir);
+  const targetDir = options.targetDir ?? '.';
   const active = activeCapabilities(config);
   const ids = new Set(active.map((c) => c.id));
   return {
@@ -46,11 +47,12 @@ export function projectProfile(
     stack,
     active,
     has: (id) => ids.has(id),
-    commands: projectCommands(options.targetDir ?? '.', stack, {
+    commands: projectCommands(targetDir, stack, {
       packageManager: config.packageManager,
       scripts: options.scripts
     }),
-    e2eDir: e2eDirFor(stack)
+    e2eDir: e2eDirFor(stack),
+    testDir: ['tests', 'test'].find((dir) => fs.statSync(path.join(targetDir, dir), { throwIfNoEntry: false })?.isDirectory())
   };
 }
 

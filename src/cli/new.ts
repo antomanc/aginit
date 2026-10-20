@@ -50,7 +50,7 @@ export interface NewProjectOptions {
   framework?: WebFramework;
   packageManager?: PackageManager;
   skills?: boolean;
-  graft?: boolean;
+  trail?: boolean;
   git?: boolean;
   dryRun?: boolean;
   targetDir?: string;
@@ -179,7 +179,7 @@ export async function createProject(
   const manifest = readPackageManifest(targetDir); // Validate before creating or modifying anything.
   const config = resolveConfig(projectName, targetDir, options, existingConfig, manifest);
   if (config.preset !== 'web') delete config.framework;
-  if (options.graft === false) config.codebase = { ...config.codebase, graft: false };
+  if (options.trail === false) config.codebase = { ...config.codebase, trail: false };
   if (options.skills === false && !existingConfig) config.skills.sources = [];
   const presetName = config.preset;
   const packageManager = config.packageManager ?? 'pnpm';
@@ -197,14 +197,14 @@ export async function createProject(
   let complete = true;
 
   const installSkills = options.skills !== false && config.skills.sources.length > 0;
-  // Upstream setups (agent-browser runtime, e2e, Graft) in registry order, Graft last
+  // Upstream setups (agent-browser runtime, e2e, Trail) in registry order, Trail last
   // so its first index sees every generated file.
   const setups = active
     .flatMap((capability) =>
       capability.install.flatMap((step) => (step.kind === 'setup' ? [step.setup] : []))
     )
-    .filter((setup) => !(setup === 'graft' && options.graft === false))
-    .sort((a, b) => Number(a === 'graft') - Number(b === 'graft'));
+    .filter((setup) => !(setup === 'trail' && options.trail === false))
+    .sort((a, b) => Number(a === 'trail') - Number(b === 'trail'));
   const totalSteps = 6 + setups.length;
   let currentStep = 1;
 

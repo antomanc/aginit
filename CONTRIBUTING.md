@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Aginit!
 
 ## Core Principles
 
-1. **Orchestration, not replacement**: We do not duplicate or vendor upstream tools. If a capability belongs in Graft, `skills.sh`, Impeccable, or a specific skill, it should be improved upstream.
+1. **Orchestration, not replacement**: We do not duplicate or vendor upstream tools. If a capability belongs in Trail, `skills.sh`, Impeccable, or a specific skill, it should be improved upstream.
 2. **Minimal & non-invasive**: Keep `AGENTS.md` and generated project configurations short, structured, and noise-free.
 3. **Idempotence & safety**: Project creation and initialization must never destroy user files or overwrite custom changes destructively.
 4. **Resilient defaults**: Always support `--dry-run` and keep offline fallbacks graceful.

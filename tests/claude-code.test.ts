@@ -10,7 +10,7 @@ import {
   getSkillsMissingForClaude,
   skillAgents
 } from '../src/adapters/skills.js';
-import { initGraft } from '../src/adapters/graft.js';
+import { initTrail, uninstallTrail } from '../src/adapters/trail.js';
 import { claudeMarkdownImportsAgents } from '../src/adapters/agents-md.js';
 import { getDefaultConfig } from '../src/config/defaults.js';
 import { readProjectConfig, validateConfig } from '../src/config/validation.js';
@@ -41,7 +41,7 @@ afterEach(() => {
 const legacyConfig = () => {
   const config: any = getDefaultConfig('app', 'generic');
   delete config.agents.claudeCode;
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   return config;
 };
 const skillCalls = () =>
@@ -79,7 +79,7 @@ it('does not duplicate claude-code when it is already a configured agent', () =>
 });
 
 it('installs skills for Claude Code and writes a CLAUDE.md that imports AGENTS.md', async () => {
-  await createProject('app', { targetDir: dir, git: false, graft: false, silent: true });
+  await createProject('app', { targetDir: dir, git: false, trail: false, silent: true });
   expect(skillCalls().length).toBeGreaterThan(0);
   for (const [, args] of skillCalls()) {
     const agents = args.slice(args.indexOf('--agent') + 1, -1);
@@ -102,23 +102,23 @@ it('preserves an existing CLAUDE.md', async () => {
   await createProject('app', {
     targetDir: dir,
     git: false,
-    graft: false,
+    trail: false,
     skills: false,
     silent: true
   });
   expect(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8')).toBe('# Mine\n');
 });
 
-it('wires Graft for Claude Code only when enabled', async () => {
-  await initGraft(dir, { silent: true });
+it('wires Trail for Claude Code only when enabled', async () => {
+  await initTrail(dir, { silent: true });
   expect(shell.runExecutable).toHaveBeenLastCalledWith(
-    'graft',
+    'trail',
     ['init', '--no-global', '--agents', 'antigravity', 'agents', 'claude', '-y'],
     expect.anything()
   );
-  await initGraft(dir, { silent: true, claude: false });
+  await initTrail(dir, { silent: true, claude: false });
   expect(shell.runExecutable).toHaveBeenLastCalledWith(
-    'graft',
+    'trail',
     ['init', '--no-global', '--agents', 'antigravity', 'agents', '-y'],
     expect.anything()
   );
@@ -168,4 +168,29 @@ it('recognizes the AGENTS.md import forms', () => {
   expect(claudeMarkdownImportsAgents('@AGENTS.md\n')).toBe(true);
   expect(claudeMarkdownImportsAgents('# Notes\n\n@./AGENTS.md\n')).toBe(true);
   expect(claudeMarkdownImportsAgents('Read AGENTS.md first.\n')).toBe(false);
+});
+
+it('migrates graft leftovers: its ripgrep hint, AGENTS.md block and saved config', async () => {
+  const hint =
+    "# graft's cards are gitignored but should stay greppable: ripgrep reads\n" +
+    '# .ignore before .gitignore, so this re-admits the tree to search only.\n' +
+    '!graft/\ngraft/.cache/\ngraft/.graph/\n';
+  fs.writeFileSync(path.join(dir, '.ignore'), hint);
+  await initTrail(dir, { silent: true });
+  expect(fs.existsSync(path.join(dir, '.ignore'))).toBe(false);
+  fs.writeFileSync(path.join(dir, '.ignore'), 'mine\n');
+  await initTrail(dir, { silent: true });
+  expect(fs.readFileSync(path.join(dir, '.ignore'), 'utf8')).toBe('mine\n');
+
+  fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# Mine\n\n<!-- graft:start -->\nold\n<!-- graft:end -->\n');
+  await uninstallTrail(dir, { silent: true });
+  expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8')).toBe('# Mine\n');
+
+  const legacy = { ...getDefaultConfig('old', 'cli'), codebase: { graft: false } } as any;
+  legacy.capabilities = ['graft', 'pocock'];
+  legacy.disabledCapabilities = ['graft'];
+  const config = validateConfig(legacy);
+  expect(config.codebase).toEqual({ trail: false });
+  expect(config.capabilities).toEqual(['trail', 'pocock']);
+  expect(config.disabledCapabilities).toEqual(['trail']);
 });

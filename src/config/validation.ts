@@ -50,11 +50,25 @@ export function validateUpstreamArgument(value: unknown, label: string): asserts
     );
   }
 }
-export function validateConfig(value: unknown): AginitConfig {
+/** Configs saved before Graft became Trail name it `graft`; read them as `trail`. */
+function migrateGraftConfig(value: Record<string, any>): Record<string, any> {
+  const rename = (ids: unknown) =>
+    Array.isArray(ids) ? ids.map((id) => (id === 'graft' ? 'trail' : id)) : ids;
+  const { graft, ...codebase } = isRecord(value.codebase) ? value.codebase : {};
+  return {
+    ...value,
+    ...(isRecord(value.codebase) ? { codebase: { trail: graft, ...codebase } } : {}),
+    ...(value.capabilities ? { capabilities: rename(value.capabilities) } : {}),
+    ...(value.disabledCapabilities ? { disabledCapabilities: rename(value.disabledCapabilities) } : {})
+  };
+}
+
+export function validateConfig(input: unknown): AginitConfig {
   const fail = (field: string): never => {
     throw new Error(`Invalid project configuration: ${field}`);
   };
-  if (!isRecord(value)) return fail('expected a JSON object');
+  if (!isRecord(input)) return fail('expected a JSON object');
+  const value = migrateGraftConfig(input);
   if (value.schemaVersion !== undefined && value.schemaVersion !== '1.0.0')
     fail('unsupported schemaVersion');
   if (typeof value.name !== 'string' || !value.name) fail('name');
@@ -112,7 +126,7 @@ export function validateConfig(value: unknown): AginitConfig {
     }
   }
   for (const [section, keys] of Object.entries({
-    codebase: ['graft'],
+    codebase: ['trail'],
     browser: ['visualAgent', 'playwright'],
     docs: ['adr'],
     github: ['ci']

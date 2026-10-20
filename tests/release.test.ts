@@ -32,7 +32,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   fs.rmSync(dir, { recursive: true, force: true });
 });
-const options = { skills: false, graft: false, git: false, silent: true };
+const options = { skills: false, trail: false, git: false, silent: true };
 const read = (file: string) => JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
 
 it('persists missing web scripts/dependencies while retaining custom manifest fields', async () => {
@@ -86,7 +86,7 @@ it('preserves saved config and extension fields through the actual init CLI', as
     }),
     extension: { custom: true }
   };
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
   fs.writeFileSync(
     path.join(dir, 'package.json'),
@@ -103,7 +103,7 @@ it('applies explicit init overrides without dropping extensions', async () => {
     ...getDefaultConfig('existing', 'web', { framework: 'none', packageManager: 'npm' }),
     extension: 42
   };
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
   fs.writeFileSync(
     path.join(dir, 'package.json'),
@@ -211,9 +211,9 @@ it('passes wildcard and metacharacters literally to the skill installer', async 
   );
   await expect(installSkillSource(dir, { package: '--global', skills: ['tdd'] })).rejects.toThrow();
 });
-it('warns when Graft is unavailable and does not announce complete readiness', async () => {
-  await createProject('app', { ...options, targetDir: dir, graft: true, silent: false });
-  expect(log.mock.calls.flat().join('\n')).toMatch(/Graft.*not.*install/i);
+it('warns when Trail is unavailable and does not announce complete readiness', async () => {
+  await createProject('app', { ...options, targetDir: dir, trail: true, silent: false });
+  expect(log.mock.calls.flat().join('\n')).toMatch(/Trail.*not.*install/i);
   expect(log.mock.calls.flat().join('\n')).not.toContain('is ready for development');
 });
 it('adds environment exclusions to upstream gitignore files', async () => {
@@ -246,7 +246,7 @@ it('rejects an existing-framework selection when no project manifest exists', as
 });
 it('reports an all-skills source failure as an incomplete setup', async () => {
   const config = getDefaultConfig('app', 'generic');
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   config.skills.sources = [{ package: 'owner/repo', skills: [] }];
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
   shell.runExecutable.mockResolvedValue({ ...success, ok: false, stderr: 'offline' });
@@ -280,7 +280,7 @@ it('returns a failing CLI status when upstream updates fail', async () => {
 });
 it('skips disabled integrations during updates', async () => {
   const config = getDefaultConfig('app', 'generic');
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   config.skills.sources = [];
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
   process.chdir(dir);
@@ -370,7 +370,7 @@ it('reports skills on disk alongside lockfile entries', () => {
 it('does not report missing skills when installation is disabled in config', async () => {
   const config = getDefaultConfig('app', 'generic');
   config.skills.sources = [];
-  config.codebase.graft = false;
+  config.codebase.trail = false;
   fs.writeFileSync(path.join(dir, 'aginit.config.json'), JSON.stringify(config));
   await runDoctor(dir);
   const output = log.mock.calls.flat().join('\n');

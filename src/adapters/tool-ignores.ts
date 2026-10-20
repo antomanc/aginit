@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileExists, readTextFile, safeWriteFile } from '../utils/fs.js';
 import { readPackageManifest } from '../config/validation.js';
+import { ruffConfigFile } from '../detect/index.js';
 
 // Vendored skill sources ship third-party JS and Markdown that the project's own
 // linters and formatters must not check. No ignore convention is shared across tools,
@@ -8,6 +9,7 @@ import { readPackageManifest } from '../config/validation.js';
 const VENDORED_DIRS = ['.agents', '.claude'];
 
 interface Project {
+  dir: string;
   manifest: Record<string, any> | null;
   has(dependency: string): boolean;
   exists(file: string): boolean;
@@ -117,11 +119,35 @@ const biome: ToolIgnore = {
     `add ${dirs.map((dir) => `"!!**/${dir}"`).join(', ')} to files.includes in ${file}`
 };
 
-const TOOLS = [prettier, eslintIgnore, eslintFlat, biome];
+/** Ruff: extend-exclude at the top of ruff.toml, or under an existing [tool.ruff] table. */
+const ruff: ToolIgnore = {
+  file: (project) => ruffConfigFile(project.dir),
+  missing: (text) =>
+    VENDORED_DIRS.filter((dir) => !text.includes(`"${dir}"`) && !text.includes(`'${dir}'`)),
+  patch: (text, dirs) => {
+    let start = 0;
+    if (/^\[tool\.ruff[.\]]/m.test(text)) {
+      const header = /^\[tool\.ruff\][ \t]*(#.*)?\r?\n/m.exec(text);
+      if (!header) return null;
+      start = header.index + header[0].length;
+    }
+    const next = text.slice(start).search(/^\[/m);
+    const table = text.slice(start, next === -1 ? undefined : start + next);
+    if (/^\s*extend-exclude\s*=/m.test(table)) return null;
+    const line = `extend-exclude = [${dirs.map((dir) => `"${dir}"`).join(', ')}]  # vendored agent skills (aginit)\n`;
+    return text.slice(0, start) + line + text.slice(start);
+  },
+  advice: (file, dirs) =>
+    `add extend-exclude = [${dirs.map((dir) => `"${dir}"`).join(', ')}] to ` +
+    (file === 'pyproject.toml' ? '[tool.ruff] in pyproject.toml' : file)
+};
+
+const TOOLS = [prettier, eslintIgnore, eslintFlat, biome, ruff];
 
 function pendingIgnores(targetDir: string) {
   const manifest = readPackageManifest(targetDir);
   const project: Project = {
+    dir: targetDir,
     manifest,
     has: (name) => Boolean(manifest?.dependencies?.[name] || manifest?.devDependencies?.[name]),
     exists: (file) => fileExists(path.join(targetDir, file))

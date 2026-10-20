@@ -68,29 +68,31 @@ const uiDriverName = (ctx: GuideContext) =>
 export const CATALOG: CapabilityDescriptor[] = [
   // ── Codebase graph ────────────────────────────────────────────────────────
   {
-    id: 'graft',
-    name: 'Graft',
-    description: 'Codebase context graph: graft map / ask --source / skeleton / callers',
+    id: 'trail',
+    name: 'Trail',
+    description:
+      'Codebase graph and team learnings (trail ask / skeleton / callers). ' +
+      'Sends anonymous usage stats: opt out with `trail telemetry disable` or DO_NOT_TRACK=1',
     category: 'codebase-graph',
-    author: 'NanoNets / Trail (graft contributors)',
+    author: 'Trail (formerly Graft, by NanoNets)',
     repoUrl: 'https://github.com/trailhq/Trail-Code',
     license: 'MIT',
     supportedPlatforms: ['all'],
     requiresNodeInProjectRoot: false,
     default: true,
     install: [
-      { kind: 'binary', bin: 'graft', install: 'npm install -g @nanonets/graft' },
-      { kind: 'setup', setup: 'graft' }
+      { kind: 'binary', bin: 'trail', install: 'npm install -g @trailhq/trail-code' },
+      { kind: 'setup', setup: 'trail' }
     ],
-    doctor: [{ kind: 'file', path: 'graft/INDEX.md', fix: 'graft build' }],
+    doctor: [{ kind: 'file', path: '.trail/cache/INDEX.md', fix: 'trail build' }],
     routing: {
       task: 'Codebase exploration & impact analysis',
-      read: '`graft ask "<query>" --source` / `graft skeleton <file>` (see the Graft section)'
+      read: '`trail ask "<query>" --source` / `trail skeleton <file>` (see the Trail section)'
     },
     rebuttals: [
       {
         excuse: "I'll grep/read the whole folder to understand the module.",
-        rule: 'Forbidden. Query `graft ask "<query>" --source` or `graft callers <symbol>` first to save context tokens.'
+        rule: 'Forbidden. Query `trail ask "<query>" --source` or `trail callers <symbol>` first to save context tokens.'
       }
     ]
   },
@@ -442,7 +444,10 @@ export const CATALOG: CapabilityDescriptor[] = [
           `## Unit & integration tests: ${ctx.stack} toolchain`,
           `- Run: ${code(ctx.commands.test, 'the project test command')}`,
           ctx.commands.lint ? `- Static checks: \`${ctx.commands.lint}\`` : undefined,
-          '- Write the failing test first, then the code. Keep tests next to the module they cover, following the toolchain convention.'
+          '- Write the failing test first, then the code. ' +
+            (ctx.testDir
+              ? `Put tests in \`${ctx.testDir}/\`, mirroring the module they cover.`
+              : 'Place tests where the toolchain convention puts them.')
         ]
           .filter((line): line is string => line !== undefined)
           .join('\n')

@@ -65,6 +65,20 @@ describe('stack detection', () => {
     expect(projectCommands(dir, 'flutter')).toEqual({ lint: 'flutter analyze', test: 'flutter test' });
     expect(projectCommands(dir, 'rust').test).toBe('cargo test');
   });
+
+  it('detects pytest and ruff for Python, through uv when locked', () => {
+    expect(projectCommands(dir, 'python')).toEqual({ test: 'pytest' });
+    fs.writeFileSync(path.join(dir, 'pyproject.toml'), '[tool.ruff.lint]\nselect = ["E"]\n');
+    expect(projectCommands(dir, 'python')).toEqual({
+      lint: 'ruff check . && ruff format --check .',
+      test: 'pytest'
+    });
+    fs.writeFileSync(path.join(dir, 'uv.lock'), '');
+    expect(projectCommands(dir, 'python')).toEqual({
+      lint: 'uv run ruff check . && uv run ruff format --check .',
+      test: 'uv run pytest'
+    });
+  });
 });
 
 describe('web project (agent-browser + impeccable + e2e)', () => {
@@ -74,7 +88,7 @@ describe('web project (agent-browser + impeccable + e2e)', () => {
         ...options,
         targetDir: dir,
         preset: 'web',
-        graft: false,
+        trail: false,
         profile: { testing: 'e2e' }
       })
     ).toBe(true);
@@ -137,7 +151,7 @@ describe('Flutter project (native mobile, no Node at the root)', () => {
       ...options,
       targetDir: dir,
       skills: false,
-      graft: false,
+      trail: false,
       profile: { testing: 'e2e' }
     });
     expect(calls().some((c) => c.includes('e2e@latest init .agents/e2e'))).toBe(true);
@@ -155,13 +169,38 @@ describe('Flutter project (native mobile, no Node at the root)', () => {
   });
 });
 
+describe('existing Python project (scalebridge)', () => {
+  const profile: ProfileFlags = { platform: 'backend', design: 'none', testing: 'native', uiDriver: 'none' };
+  beforeEach(() => {
+    fs.writeFileSync(file('pyproject.toml'), '[project]\nname = "app"\n\n[tool.ruff]\nline-length = 100\n');
+    fs.writeFileSync(file('uv.lock'), '');
+    fs.mkdirSync(file('tests'));
+    fs.writeFileSync(file('AGENTS.md'), '# app\n\nHand-written notes.\n');
+  });
+
+  it('documents uv, pytest, ruff and the tests/ layout without Node tooling', async () => {
+    await createProject('app', { ...options, targetDir: dir, trail: false, profile });
+    const testing = read('docs/agents/testing.md');
+    expect(testing).toContain('- Run: `uv run pytest`');
+    expect(testing).toContain('- Static checks: `uv run ruff check . && uv run ruff format --check .`');
+    expect(testing).toContain('Put tests in `tests/`, mirroring the module they cover.');
+    expect(testing).not.toContain('vitest');
+    expect(read('pyproject.toml')).toContain('extend-exclude = [".agents", ".claude"]');
+    expect(fs.existsSync(file('package.json'))).toBe(false);
+
+    const agents = read('AGENTS.md');
+    expect(agents.startsWith('# app\n\nHand-written notes.\n\n' + AGINIT_BLOCK_START + '\n## Bootstrap')).toBe(true);
+    expect(agents).not.toContain('`PRODUCT.md` |');
+  });
+});
+
 describe('CLI / Node project (--platform cli --design none)', () => {
   it('skips design and UI tooling and keeps Vitest', async () => {
     await createProject('my-cli', {
       ...options,
       targetDir: dir,
       preset: 'cli',
-      graft: false,
+      trail: false,
       profile: { platform: 'cli', design: 'none' }
     });
     const saved = config();
@@ -176,7 +215,7 @@ describe('CLI / Node project (--platform cli --design none)', () => {
   });
 
   it('reruns without changing the saved config or the generated docs', async () => {
-    const run = () => createProject('my-cli', { ...options, targetDir: dir, preset: 'cli', graft: false });
+    const run = () => createProject('my-cli', { ...options, targetDir: dir, preset: 'cli', trail: false });
     await run();
     const snapshot = ['aginit.config.json', 'AGENTS.md', 'docs/agents/testing.md', 'docs/agents/workflows.md'].map(read);
     await run();
@@ -186,7 +225,7 @@ describe('CLI / Node project (--platform cli --design none)', () => {
 
 describe('aginit add / remove', () => {
   beforeEach(async () => {
-    await createProject('web-app', { ...options, targetDir: dir, preset: 'web', graft: false });
+    await createProject('web-app', { ...options, targetDir: dir, preset: 'web', trail: false });
     shell.runExecutable.mockClear();
   });
 
@@ -221,16 +260,16 @@ describe('aginit add / remove', () => {
 });
 
 describe('AGENTS.md and docs/agents merge safety', () => {
-  it('inserts the aginit block above Graft and refreshes it in place', async () => {
+  it('inserts the aginit block above Trail and refreshes it in place', async () => {
     fs.writeFileSync(
       file('AGENTS.md'),
-      '# Mine\n\nKeep this.\n\n<!-- graft:start -->\ngraft stuff\n<!-- graft:end -->\n'
+      '# Mine\n\nKeep this.\n\n<!-- trail:start -->\ntrail stuff\n<!-- trail:end -->\n'
     );
-    await createProject('merge', { ...options, targetDir: dir, graft: false });
+    await createProject('merge', { ...options, targetDir: dir, trail: false });
     const first = read('AGENTS.md');
     expect(first.startsWith('# Mine\n\nKeep this.\n\n' + AGINIT_BLOCK_START)).toBe(true);
-    expect(first.indexOf('<!-- aginit:end -->')).toBeLessThan(first.indexOf('<!-- graft:start -->'));
-    await createProject('merge', { ...options, targetDir: dir, graft: false });
+    expect(first.indexOf('<!-- aginit:end -->')).toBeLessThan(first.indexOf('<!-- trail:start -->'));
+    await createProject('merge', { ...options, targetDir: dir, trail: false });
     expect(read('AGENTS.md')).toBe(first);
   });
 
@@ -244,7 +283,7 @@ describe('AGENTS.md and docs/agents merge safety', () => {
       file('docs/agents/testing.md'),
       `${LEGACY_GENERATED_MARKER}\n# Testing\nold\n`
     );
-    await createProject('upgrade', { ...options, targetDir: dir, graft: false });
+    await createProject('upgrade', { ...options, targetDir: dir, trail: false });
     const agents = read('AGENTS.md');
     expect(agents.startsWith('# Mine\n\nKeep this.\n\n' + AGINIT_BLOCK_START)).toBe(true);
     expect(agents).not.toContain('<!-- aginit:start -->');
@@ -256,14 +295,14 @@ describe('AGENTS.md and docs/agents merge safety', () => {
   });
 
   it('never rewrites a micro-doc the user took over', async () => {
-    await createProject('owned', { ...options, targetDir: dir, graft: false });
+    await createProject('owned', { ...options, targetDir: dir, trail: false });
     const edited = read('docs/agents/testing.md').replace(GENERATED_MARKER + '\n', '') + '\nmine\n';
     fs.writeFileSync(file('docs/agents/testing.md'), edited);
-    await createProject('owned', { ...options, targetDir: dir, graft: false, profile: { testing: 'e2e' } });
+    await createProject('owned', { ...options, targetDir: dir, trail: false, profile: { testing: 'e2e' } });
     expect(read('docs/agents/testing.md')).toBe(edited);
   });
 
-  it('keeps the root AGENTS.md within 85 lines outside the Graft block', async () => {
+  it('keeps the root AGENTS.md within 85 lines outside the Trail block', async () => {
     const cases: Array<[string, ProfileFlags]> = [
       ['pubspec.yaml', { testing: 'e2e', addons: ['context-mode', 'worktrunk'] }],
       ['package.json', { testing: 'e2e', addons: ['chrome-devtools-mcp', 'browserskill'] }]
@@ -273,7 +312,7 @@ describe('AGENTS.md and docs/agents merge safety', () => {
       fs.mkdirSync(dir);
       fs.writeFileSync(file(marker), marker === 'package.json' ? '{"dependencies":{"next":"16"}}' : 'name: x');
       await createProject('budget', { ...options, targetDir: dir, profile: extra });
-      const lines = read('AGENTS.md').replace(/<!-- graft:start -->[\s\S]*<!-- graft:end -->/, '').split('\n');
+      const lines = read('AGENTS.md').replace(/<!-- trail:start -->[\s\S]*<!-- trail:end -->/, '').split('\n');
       expect(lines.length).toBeLessThanOrEqual(85);
     }
   });
@@ -283,6 +322,6 @@ it('adds no placeholder test to a project that already has tests', async () => {
   fs.mkdirSync(file('tests'));
   fs.writeFileSync(file('tests/app.test.ts'), "it('works', () => {});\n");
   fs.writeFileSync(file('package.json'), JSON.stringify({ name: 'has-tests', type: 'module' }));
-  await createProject('has-tests', { ...options, targetDir: dir, preset: 'cli', graft: false });
+  await createProject('has-tests', { ...options, targetDir: dir, preset: 'cli', trail: false });
   expect(fs.readdirSync(file('tests'))).toEqual(['app.test.ts']);
 });
