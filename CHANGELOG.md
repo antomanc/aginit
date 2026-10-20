@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0] - 2026-10-20
+
+### Added
+
+- Python projects with ruff configured (`ruff.toml`, `.ruff.toml` or `[tool.ruff]` in `pyproject.toml`) get `ruff check . && ruff format --check .` as their lint command (through `uv run` when `uv.lock` exists), and aginit adds `.agents` and `.claude` to ruff's `extend-exclude` so vendored skill scripts don't fail the project's lint. An existing `extend-exclude` gets advice instead of an edit.
+- The wizard's setup summary names the codebase graph and its telemetry opt-out.
+
+### Changed
+
+- **Breaking:** the codebase graph is now [Trail](https://github.com/trailhq/Trail-Code) (`@trailhq/trail-code`, bin `trail`), which replaces Graft upstream. `--no-graft` is now `--no-trail` and `--without graft` is `--without trail`. Configs saved with `codebase.graft` or a `graft` capability id load as `trail`. `trail init` migrates repos Graft wired before, and aginit removes Graft's unedited `.ignore` hint. Trail sends anonymous usage stats; opt out with `trail telemetry disable` or `DO_NOT_TRACK=1`.
+- The Bootstrap & First Session section of `AGENTS.md` now lives inside the managed block, so aginit can keep it up to date. An unedited copy left outside the block by older versions is removed; an edited one is kept. `aginit doctor` checks for the managed block.
+- The Task Routing row for `PRODUCT.md` appears only when the file exists or a design capability writes it.
+- The native testing guide follows an existing `tests/` or `test/` directory, and no longer tells agents to keep tests next to the module.
+
 ## [0.5.1] - 2026-10-15
 
 ### Added
