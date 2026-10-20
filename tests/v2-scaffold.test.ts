@@ -65,6 +65,20 @@ describe('stack detection', () => {
     expect(projectCommands(dir, 'flutter')).toEqual({ lint: 'flutter analyze', test: 'flutter test' });
     expect(projectCommands(dir, 'rust').test).toBe('cargo test');
   });
+
+  it('detects pytest and ruff for Python, through uv when locked', () => {
+    expect(projectCommands(dir, 'python')).toEqual({ test: 'pytest' });
+    fs.writeFileSync(path.join(dir, 'pyproject.toml'), '[tool.ruff.lint]\nselect = ["E"]\n');
+    expect(projectCommands(dir, 'python')).toEqual({
+      lint: 'ruff check . && ruff format --check .',
+      test: 'pytest'
+    });
+    fs.writeFileSync(path.join(dir, 'uv.lock'), '');
+    expect(projectCommands(dir, 'python')).toEqual({
+      lint: 'uv run ruff check . && uv run ruff format --check .',
+      test: 'uv run pytest'
+    });
+  });
 });
 
 describe('web project (agent-browser + impeccable + e2e)', () => {

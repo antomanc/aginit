@@ -74,6 +74,14 @@ export function detectProject(dir: string): DetectedProject {
   return { platform: null, stack: 'unknown' };
 }
 
+/** The file configuring ruff, in ruff's own lookup order, when the project uses it. */
+export function ruffConfigFile(dir: string): string | undefined {
+  const local = ['.ruff.toml', 'ruff.toml'].find((file) => fs.existsSync(path.join(dir, file)));
+  if (local) return local;
+  const pyproject = readTextFile(path.join(dir, 'pyproject.toml')) ?? '';
+  return /^\[tool\.ruff[.\]]/m.test(pyproject) ? 'pyproject.toml' : undefined;
+}
+
 /**
  * The project's own commands: package scripts for Node projects, the host
  * toolchain otherwise. Commands that would be guesses are left out.
@@ -126,8 +134,13 @@ export function projectCommands(
       return { build: 'cargo build', typecheck: 'cargo check', lint: 'cargo clippy', test: 'cargo test' };
     case 'go':
       return { build: 'go build ./...', lint: 'go vet ./...', test: 'go test ./...' };
-    case 'python':
-      return { test: exists('uv.lock') ? 'uv run pytest' : 'pytest' };
+    case 'python': {
+      const run = exists('uv.lock') ? 'uv run ' : '';
+      return {
+        ...(ruffConfigFile(dir) ? { lint: `${run}ruff check . && ${run}ruff format --check .` } : {}),
+        test: `${run}pytest`
+      };
+    }
     case 'unknown':
       return {};
   }
