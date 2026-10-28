@@ -22,6 +22,7 @@ const CATEGORIES = [
   'methodology',
   'discipline',
   'design',
+  'art-direction',
   'codebase-graph',
   'ui-driver',
   'testing-engine',

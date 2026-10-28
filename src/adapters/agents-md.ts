@@ -69,7 +69,7 @@ export function renderAgentsBlock(
   // Only route to PRODUCT.md when it exists or a design capability will write it.
   if ((targetDir && fileExists(path.join(targetDir, 'PRODUCT.md'))) || profile.active.some((c) => c.category === 'design'))
     routing.push(['Product intent, scope, target users', '`PRODUCT.md`']);
-  const order = ['design', 'codebase-graph'];
+  const order = ['design', 'art-direction', 'codebase-graph'];
   const rank = (c: CapabilityDescriptor) => (order.indexOf(c.category) + order.length + 1) % (order.length + 1);
   const direct = profile.active.filter((c) => c.routing).sort((a, b) => rank(a) - rank(b));
   const routeOf = (c: CapabilityDescriptor): [string, string] => [c.routing!.task, c.routing!.read];

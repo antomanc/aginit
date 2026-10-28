@@ -62,6 +62,12 @@ Each integrated upstream tool is governed by its respective authors and licenses
   - License: Apache-2.0
   - Repository: https://github.com/pbakaus/impeccable
 
+- **Taste Skill**
+  - Project: Art direction for websites and landing pages
+  - Author: Leonxlnx
+  - License: MIT
+  - Repository: https://github.com/Leonxlnx/taste-skill
+
 ## UI drivers
 
 - **agent-browser**
