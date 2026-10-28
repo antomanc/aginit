@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0] - 2026-10-28
+
+### Added
+
+- [Taste Skill](https://github.com/Leonxlnx/taste-skill) (`design-taste`, installs `design-taste-frontend`) is a default for new web projects, for landing-page and website art direction. It sits in its own `art-direction` category, so it works alongside Impeccable and `--design` doesn't touch it. Skip it with `--without design-taste`; existing projects add it with `aginit add design-taste`.
+
+### Fixed
+
+- Refreshed the lockfile so `vite` (a `vitest` dependency) passes `pnpm audit`.
+
 ## [0.6.0] - 2026-10-20
 
 ### Added
