@@ -88,6 +88,34 @@ describe('platform defaults', () => {
   });
 });
 
+describe('design-taste', () => {
+  it('is a web default that coexists with the design pick', () => {
+    expect(defaultCapabilities({ platform: 'web', stack: 'node' })).toEqual(
+      expect.arrayContaining(['impeccable', 'design-taste'])
+    );
+    for (const [platform, stack] of [
+      ['mobile-native', 'flutter'],
+      ['mobile-rn', 'react-native'],
+      ['cli', 'node'],
+      ['backend', 'go']
+    ] as const)
+      expect(defaultCapabilities({ platform, stack })).not.toContain('design-taste');
+  });
+
+  it('survives --design and can be added later to a saved project', () => {
+    const web = { platform: 'web' as const, stack: 'node' as const };
+    const { capabilities } = resolveCapabilities({ ...web, flags: { design: 'none' } });
+    expect(capabilities).toContain('design-taste');
+    const saved = resolveCapabilities({ ...web, flags: { without: ['design-taste'] } });
+    expect(saved.capabilities).not.toContain('design-taste');
+    const added = resolveCapabilities(
+      { ...web, base: saved.capabilities, basePlatform: 'web', flags: { addons: ['design-taste'] } },
+      saved.disabledCapabilities.filter((id) => id !== 'design-taste')
+    );
+    expect(added.capabilities).toEqual(expect.arrayContaining(['impeccable', 'design-taste']));
+  });
+});
+
 describe('resolveCapabilities', () => {
   const web = { platform: 'web' as const, stack: 'node' as const };
 

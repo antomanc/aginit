@@ -266,6 +266,24 @@ export const CATALOG: CapabilityDescriptor[] = [
     }
   },
 
+  {
+    id: 'design-taste',
+    name: 'Taste Skill',
+    description: 'Art direction for websites and landing pages; keeps generated frontends from looking templated',
+    category: 'art-direction',
+    author: 'Leonxlnx',
+    repoUrl: 'https://github.com/Leonxlnx/taste-skill',
+    license: 'MIT',
+    supportedPlatforms: ['web'],
+    requiresNodeInProjectRoot: false,
+    default: true,
+    install: [{ kind: 'skills-sh', repo: 'Leonxlnx/taste-skill', skills: ['design-taste-frontend'] }],
+    routing: {
+      task: 'Landing pages, marketing sites, website art direction',
+      read: '`design-taste-frontend` skill'
+    }
+  },
+
   // ── UI drivers ────────────────────────────────────────────────────────────
   {
     id: 'agent-browser',

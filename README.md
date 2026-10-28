@@ -39,7 +39,7 @@ aginit sets all of this up the same way every time, and you can re-run it whenev
 | **Instructions** | A lean `AGENTS.md`: invariants, the project's real commands, Karpathy guardrails, a **Task Routing** table and an **Anti-Rationalization** table. Details live in `docs/agents/testing.md`, `ui-verification.md` and `workflows.md`, which agents load only when the task needs them. A one-line `CLAUDE.md` (`@AGENTS.md`) makes Claude Code read it too |
 | **Skills** | One methodology ([Matt Pocock skills](https://github.com/mattpocock/skills) by default, or [Superpowers](https://github.com/obra/superpowers), or none) plus [ponytail](https://github.com/DietrichGebert/ponytail), [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and [humanizer](https://github.com/blader/humanizer). Installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills), linked into `.claude/skills/` |
 | **Codebase graph** | [Trail](https://github.com/trailhq/Trail-Code) (formerly Graft): `trail map` and `trail ask` give agents the relevant code spans before they grep, and sessions leave shared learnings in `.trail/learnings/` |
-| **Design** | [Impeccable](https://github.com/pbakaus/impeccable) on web and mobile (`/impeccable init`, `audit`, `polish`). It needs no Node, so it works in Flutter, Swift and Kotlin repos |
+| **Design** | [Impeccable](https://github.com/pbakaus/impeccable) on web and mobile (`/impeccable init`, `audit`, `polish`). It needs no Node, so it works in Flutter, Swift and Kotlin repos. Web projects also get [Taste Skill](https://github.com/Leonxlnx/taste-skill) (`design-taste-frontend`) for landing-page art direction; remove it with `aginit remove design-taste`. Existing projects can add it with `aginit add design-taste` |
 | **UI verification** | [agent-browser](https://github.com/vercel-labs/agent-browser) for web, [agent-device](https://github.com/callstack/agent-device) for iOS Simulator and Android Emulator. Optional: [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), [BrowserSkill](https://github.com/Tencent/BrowserSkill) |
 | **Testing** | Vitest (+ Playwright with a web framework) for Node projects, the host runner (`flutter test`, `cargo test`, ...) otherwise, and optionally [e2e](https://github.com/tester-army/e2e), natural-language E2E tests with a zero-cost replay cache |
 | **Add-ons** | [context-mode](https://github.com/mksglu/context-mode) keeps huge logs out of the context window; [Worktrunk](https://github.com/max-sixty/worktrunk) gives parallel agents their own worktrees |
@@ -99,7 +99,7 @@ Capability flags (the platform is detected; flags override it):
 | --- | --- |
 | `--platform` | `auto`, `web`, `mobile-native`, `mobile-rn`, `backend`, `cli` |
 | `--methodology` | `pocock` (default), `superpowers`, `minimal` |
-| `--design` | `impeccable` (default for UI platforms), `none` |
+| `--design` | `impeccable` (default for UI platforms), `none`. Taste Skill is separate: `--without design-taste` to skip it |
 | `--testing` | `e2e`, `playwright`, `vitest`, `native` |
 | `--ui-driver` | `auto`, `agent-browser`, `agent-device`, `chrome-devtools-mcp`, `browserskill`, `none` |
 | `--addons` | `context-mode`, `worktrunk`, `chrome-devtools-mcp`, `browserskill` (comma-separated) |

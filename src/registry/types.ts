@@ -14,6 +14,7 @@ export type CapabilityCategory =
   | 'methodology' // pocock, superpowers, minimal
   | 'discipline' // ponytail, karpathy-guidelines, humanizer
   | 'design' // impeccable
+  | 'art-direction' // design-taste (alongside the design pick, not instead of it)
   | 'codebase-graph' // trail
   | 'ui-driver' // agent-browser, agent-device, chrome-devtools-mcp, browserskill
   | 'testing-engine' // e2e, playwright, vitest, native

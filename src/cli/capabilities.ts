@@ -44,7 +44,10 @@ export function listCapabilities(targetDir: string = process.cwd()): void {
   );
   const catalog = catalogFor(config);
   for (const category of CATEGORY_ORDER) {
-    const entries = catalog.filter((c) => c.category === category);
+    // art-direction (Taste Skill) is listed with design.
+    const entries = catalog.filter(
+      (c) => c.category === category || (category === 'design' && c.category === 'art-direction')
+    );
     if (entries.length === 0) continue;
     console.log(pc.bold(pc.underline(category)));
     for (const c of entries) {
