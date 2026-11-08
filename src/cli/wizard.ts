@@ -205,7 +205,7 @@ export async function confirmSetup(answers: WizardInitAnswers): Promise<boolean>
   const profile = answers.profile;
   const name = (id: string | undefined) => CATALOG.find((c) => c.id === id)?.name ?? id;
   const graph = CATALOG.find(
-    (c) => c.category === 'codebase-graph' && c.default && !profile.without?.includes(c.id)
+    (c) => c.category === 'codebase-graph' && profile.addons?.includes(c.id) && !profile.without?.includes(c.id)
   );
   p.note([
     `Platform: ${profile.platform}`,

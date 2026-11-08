@@ -185,6 +185,12 @@ it('migrates graft leftovers: its ripgrep hint, AGENTS.md block and saved config
   fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# Mine\n\n<!-- graft:start -->\nold\n<!-- graft:end -->\n');
   await uninstallTrail(dir, { silent: true });
   expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8')).toBe('# Mine\n');
+  // Without -y, trail uninstall only previews what it would remove.
+  expect(shell.runExecutable).toHaveBeenCalledWith(
+    'trail',
+    ['uninstall', '--no-global', '-y'],
+    expect.anything()
+  );
 
   const legacy = { ...getDefaultConfig('old', 'cli'), codebase: { graft: false } } as any;
   legacy.capabilities = ['graft', 'pocock'];

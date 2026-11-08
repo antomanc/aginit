@@ -212,7 +212,7 @@ it('passes wildcard and metacharacters literally to the skill installer', async 
   await expect(installSkillSource(dir, { package: '--global', skills: ['tdd'] })).rejects.toThrow();
 });
 it('warns when Trail is unavailable and does not announce complete readiness', async () => {
-  await createProject('app', { ...options, targetDir: dir, trail: true, silent: false });
+  await createProject('app', { ...options, targetDir: dir, trail: true, profile: { addons: ['trail'] }, silent: false });
   expect(log.mock.calls.flat().join('\n')).toMatch(/Trail.*not.*install/i);
   expect(log.mock.calls.flat().join('\n')).not.toContain('is ready for development');
 });

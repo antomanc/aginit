@@ -48,7 +48,7 @@ function withProfileOptions(command: Command): Command {
     .option('--design <design>', 'Design system: impeccable | none')
     .option('--testing <engine>', 'Testing: e2e | playwright | vitest | native')
     .option('--ui-driver <driver>', 'UI driver: auto | agent-browser | agent-device | none')
-    .option('--addons <ids>', 'Add-ons: context-mode, worktrunk, chrome-devtools-mcp, browserskill', list)
+    .option('--addons <ids>', 'Add-ons: trail, context-mode, worktrunk, chrome-devtools-mcp, browserskill', list)
     .option('--add-skill <owner/repo>', 'Add a skill repository as a custom capability (repeatable)', list)
     .option('--without <id>', 'Disable a capability, e.g. trail or humanizer (repeatable)', list);
 }

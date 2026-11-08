@@ -79,7 +79,8 @@ export const CATALOG: CapabilityDescriptor[] = [
     license: 'MIT',
     supportedPlatforms: ['all'],
     requiresNodeInProjectRoot: false,
-    default: true,
+    // Opt-in (--addons trail): not useful enough to turn on for every project.
+    addon: true,
     install: [
       { kind: 'binary', bin: 'trail', install: 'npm install -g @trailhq/trail-code' },
       { kind: 'setup', setup: 'trail' }

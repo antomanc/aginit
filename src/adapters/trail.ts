@@ -77,7 +77,7 @@ export async function uninstallTrail(
   const { dryRun = false } = options;
   const installed = dryRun || (await isTrailInstalled());
   if (installed) {
-    await runExecutable('trail', ['uninstall'], { cwd: targetDir, dryRun, silent: true });
+    await runExecutable('trail', ['uninstall', '--no-global', '-y'], { cwd: targetDir, dryRun, silent: true });
   }
 
   // Also clean up AGENTS.md fenced section if any remain (graft's included)

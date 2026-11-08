@@ -63,7 +63,7 @@ export function getDefaultConfig(
       claudeCode: true
     },
     skills: { sources: [] },
-    codebase: { trail: true },
+    codebase: { trail: false },
     browser: { visualAgent: false, playwright: false },
     docs: { adr: true },
     github: { ci: preset !== 'generic' }

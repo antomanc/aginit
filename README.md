@@ -38,12 +38,11 @@ aginit sets all of this up the same way every time, and you can re-run it whenev
 |---|---|
 | **Instructions** | A lean `AGENTS.md`: invariants, the project's real commands, Karpathy guardrails, a **Task Routing** table and an **Anti-Rationalization** table. Details live in `docs/agents/testing.md`, `ui-verification.md` and `workflows.md`, which agents load only when the task needs them. A one-line `CLAUDE.md` (`@AGENTS.md`) makes Claude Code read it too |
 | **Skills** | One methodology ([Matt Pocock skills](https://github.com/mattpocock/skills) by default, or [Superpowers](https://github.com/obra/superpowers), or none) plus [ponytail](https://github.com/DietrichGebert/ponytail), [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills) and [humanizer](https://github.com/blader/humanizer). Installed in `.agents/skills/` via the [Skills CLI](https://github.com/vercel-labs/skills), linked into `.claude/skills/` |
-| **Codebase graph** | [Trail](https://github.com/trailhq/Trail-Code) (formerly Graft): `trail map` and `trail ask` give agents the relevant code spans before they grep, and sessions leave shared learnings in `.trail/learnings/` |
 | **Design** | [Impeccable](https://github.com/pbakaus/impeccable) on web and mobile (`/impeccable init`, `audit`, `polish`). It needs no Node, so it works in Flutter, Swift and Kotlin repos. Web projects also get [Taste Skill](https://github.com/Leonxlnx/taste-skill) (`design-taste-frontend`) for landing-page art direction; remove it with `aginit remove design-taste`. Existing projects can add it with `aginit add design-taste` |
 | **UI verification** | [agent-browser](https://github.com/vercel-labs/agent-browser) for web, [agent-device](https://github.com/callstack/agent-device) for iOS Simulator and Android Emulator. Optional: [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), [BrowserSkill](https://github.com/Tencent/BrowserSkill) |
 | **Testing** | Vitest (+ Playwright with a web framework) for Node projects, the host runner (`flutter test`, `cargo test`, ...) otherwise, and optionally [e2e](https://github.com/tester-army/e2e), natural-language E2E tests with a zero-cost replay cache |
-| **Add-ons** | [context-mode](https://github.com/mksglu/context-mode) keeps huge logs out of the context window; [Worktrunk](https://github.com/max-sixty/worktrunk) gives parallel agents their own worktrees |
-| **Maintenance** | `aginit list`, `add` and `remove` change capabilities in place; `doctor` checks every active one; `update` refreshes skills and the graph |
+| **Add-ons** | [context-mode](https://github.com/mksglu/context-mode) keeps huge logs out of the context window; [Worktrunk](https://github.com/max-sixty/worktrunk) gives parallel agents their own worktrees; [Trail](https://github.com/trailhq/Trail-Code) is a codebase graph (`trail ask`, `trail map`) with shared learnings in `.trail/learnings/` |
+| **Maintenance** | `aginit list`, `add` and `remove` change capabilities in place; `doctor` checks every active one; `update` refreshes skills and the Trail graph when it is enabled |
 
 Non-JS projects stay non-JS: aginit never adds a root `package.json` to a Flutter, Swift,
 Kotlin, Rust, Go or Python repo. e2e gets its own workspace in `.agents/e2e/`.
@@ -63,14 +62,14 @@ and walks you through platform, methodology, design, testing, UI driver, and add
 a setup summary before writing any files. Existing projects keep the package manager they
 already use.
 
-Trail is installed separately (or skip it with `--no-trail`):
+Trail is opt-in (`--addons trail`, or `aginit add trail`) and installed separately:
 
 ```bash
 npm install -g @trailhq/trail-code
 ```
 
 Trail sends anonymous usage stats by default. Turn them off with `trail telemetry disable` or
-`DO_NOT_TRACK=1`. Projects set up with Graft move to Trail on the next `aginit init`.
+`DO_NOT_TRACK=1`. Projects already set up with Trail or Graft keep it on the next `aginit init`.
 
 ## Commands
 
@@ -82,7 +81,7 @@ aginit list                 Show the capability registry and what this project e
 aginit add <id|owner/repo>  Enable capabilities (installs skills, refreshes AGENTS.md and docs)
 aginit remove <id>          Disable capabilities and remove their skills
 aginit doctor               Check the environment and every active capability
-aginit update               Update installed skills and rebuild the Trail index
+aginit update               Update installed skills (and the Trail index, if enabled)
 ```
 
 Bare `aginit` opens the wizard in a terminal and prints help elsewhere. The wizard detects your stack,
@@ -102,7 +101,7 @@ Capability flags (the platform is detected; flags override it):
 | `--design` | `impeccable` (default for UI platforms), `none`. Taste Skill is separate: `--without design-taste` to skip it |
 | `--testing` | `e2e`, `playwright`, `vitest`, `native` |
 | `--ui-driver` | `auto`, `agent-browser`, `agent-device`, `chrome-devtools-mcp`, `browserskill`, `none` |
-| `--addons` | `context-mode`, `worktrunk`, `chrome-devtools-mcp`, `browserskill` (comma-separated) |
+| `--addons` | `trail`, `context-mode`, `worktrunk`, `chrome-devtools-mcp`, `browserskill` (comma-separated) |
 | `--add-skill` | any `owner/repo` skill repository (repeatable) |
 | `--without` | any capability id, e.g. `trail` or `humanizer` (repeatable) |
 
@@ -136,7 +135,7 @@ aginit list
 | --- | --- |
 | `web` | TypeScript and Vitest, with optional Vite or Next.js scaffolding. Playwright is added when a web framework is selected. |
 | `cli` | Node.js/TypeScript CLI with Commander, Picocolors and Vitest. |
-| `generic` | Git, `AGENTS.md`, skills and Trail. Leaves an existing `package.json` untouched. |
+| `generic` | Git, `AGENTS.md` and skills. Leaves an existing `package.json` untouched. |
 
 The web preset's `--framework none` (default) creates a TypeScript baseline without a bundler
 or browser tests. `existing` keeps the framework you already have.
@@ -183,7 +182,7 @@ dependency versions and test configs, and only adds what's missing. If you alrea
 different test runner, aginit adds a separate `test:unit` script instead of touching yours.
 
 An existing `AGENTS.md` is preserved. aginit adds its managed block between
-`<!-- aginit:start -->` and `<!-- aginit:end -->`, above Trail's block, and refreshes only that
+`<!-- aginit:start -->` and `<!-- aginit:end -->`, above Trail's block when Trail is enabled, and refreshes only that
 block afterwards. The `docs/agents/` pages carry a marker line; delete it and aginit leaves
 that page to you. Configs from older versions keep loading unchanged. Their capabilities are
 inferred from `skills.sources` and the `codebase`/`browser` switches until you run
