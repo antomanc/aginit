@@ -55,7 +55,8 @@ describe('catalog', () => {
         expect(
           ids.filter((id) => CATALOG.find((c) => c.id === id)?.category === category).length
         ).toBeLessThanOrEqual(1);
-      expect(ids).toEqual(expect.arrayContaining(['trail', 'pocock', 'ponytail', 'karpathy-guidelines', 'humanizer']));
+      expect(ids).not.toContain('trail');
+      expect(ids).toEqual(expect.arrayContaining(['pocock', 'ponytail', 'karpathy-guidelines', 'humanizer']));
     }
   });
 });
@@ -179,6 +180,7 @@ describe('configs written before v2', () => {
   const legacy = () => {
     const config = getDefaultConfig('old', 'web', { framework: 'vite' }) as any;
     delete config.capabilities;
+    config.codebase.trail = true;
     delete config.platform;
     delete config.stack;
     return validateConfig(config);

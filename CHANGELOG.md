@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0] - 2026-11-08
+
+### Changed
+
+- **Breaking:** Trail is now an opt-in add-on instead of a default. Turn it on with `--addons trail` (or `aginit add trail`, or the wizard's add-on list). Projects whose `aginit.config.json` already enables Trail keep it. `--no-trail` still works and is now the default behaviour.
+
 ## [0.7.0] - 2026-10-28
 
 ### Added

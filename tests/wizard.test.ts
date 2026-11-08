@@ -157,11 +157,13 @@ describe('Wizard & Interactive Prompts', () => {
   it('discloses the codebase graph and its telemetry before applying the setup', async () => {
     const answers = await promptInitProject({ preset: 'generic', packageManager: 'pnpm' });
     await confirmSetup(answers);
+    expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain('Codebase graph: None');
+    await confirmSetup({ ...answers, profile: { ...answers.profile, addons: ['trail'] } });
     expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain(
       'Codebase graph: Trail. Codebase graph and team learnings'
     );
     expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain('trail telemetry disable');
-    await confirmSetup({ ...answers, profile: { ...answers.profile, without: ['trail'] } });
+    await confirmSetup({ ...answers, profile: { ...answers.profile, addons: ['trail'], without: ['trail'] } });
     expect(vi.mocked(prompts.note).mock.lastCall?.[0]).toContain('Codebase graph: None');
   });
 
