@@ -1,3 +1,4 @@
+import { validateConfig } from '../src/config/validation.js';
 import { describe, it, expect } from 'vitest';
 import {
   getDefaultConfig,
@@ -37,6 +38,19 @@ describe('Configuration & Defaults', () => {
       const config = getDefaultConfig('app', preset);
       expect(config.skills.sources.some((s) => s.package === 'dietrichgebert/ponytail')).toBe(false);
     }
+  });
+
+  it('drops retired ponytail selections when loading an existing config', () => {
+    const config = getDefaultConfig('app', 'generic');
+    config.skills.sources.push({ package: 'DietrichGebert/ponytail', skills: ['ponytail'] });
+    config.capabilities!.push('ponytail');
+    config.disabledCapabilities = ['ponytail', 'trail'];
+
+    const migrated = validateConfig(config);
+    expect(migrated.skills.sources).toEqual(config.skills.sources.slice(0, -1));
+    expect(migrated.capabilities).not.toContain('ponytail');
+    expect(migrated.disabledCapabilities).toEqual(['trail']);
+    expect(validateConfig(migrated)).toEqual(migrated);
   });
 
   it('supports explicit packageManager choices: npm, yarn, bun', () => {

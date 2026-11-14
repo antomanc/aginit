@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileExists, readJsonFile } from '../utils/fs.js';
 import { AginitConfig, AGINIT_CONFIG_FILENAME, LEGACY_CONFIG_FILENAME } from './schema.js';
-import { CATALOG } from '../registry/catalog.js';
+import { CATALOG, RETIRED_CAPABILITIES } from '../registry/catalog.js';
 import { PLATFORMS } from '../registry/index.js';
 
 export const PRESETS = ['web', 'cli', 'generic'] as const;
@@ -135,7 +135,19 @@ export function validateConfig(input: unknown): AginitConfig {
     if (!isRecord(value[section])) fail(section);
     for (const key of keys) if (typeof value[section][key] !== 'boolean') fail(`${section}.${key}`);
   }
-  return { ...value, schemaVersion: '1.0.0' } as AginitConfig;
+  const config = { ...value, schemaVersion: '1.0.0' } as AginitConfig;
+  config.skills = {
+    ...config.skills,
+    sources: config.skills.sources.filter(
+      (source) => !RETIRED_CAPABILITIES.some((entry) => entry.repo === source.package.toLowerCase())
+    )
+  };
+  for (const key of ['capabilities', 'disabledCapabilities'] as const) {
+    if (config[key]) {
+      config[key] = config[key].filter((id) => !RETIRED_CAPABILITIES.some((entry) => entry.id === id));
+    }
+  }
+  return config;
 }
 export function readProjectConfig(dir: string): AginitConfig | null {
   const file = [AGINIT_CONFIG_FILENAME, LEGACY_CONFIG_FILENAME]

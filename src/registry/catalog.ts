@@ -1,5 +1,10 @@
 import { CapabilityDescriptor, GuideContext } from './types.js';
 
+/** Removed defaults that must also be dropped from saved project configs. */
+export const RETIRED_CAPABILITIES = [
+  { id: 'ponytail', repo: 'dietrichgebert/ponytail' }
+];
+
 /**
  * The stable skill set from mattpocock/skills installed by default:
  * every skill in the `engineering` and `productivity` categories.

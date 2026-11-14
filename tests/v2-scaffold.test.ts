@@ -1,3 +1,4 @@
+import { getDefaultConfig } from '../src/config/defaults.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -32,6 +33,19 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+it('does not reinstall ponytail when initializing an existing project', async () => {
+  const saved = getDefaultConfig('app', 'generic');
+  saved.skills.sources.push({ package: 'dietrichgebert/ponytail', skills: ['ponytail'] });
+  saved.capabilities!.push('ponytail');
+  fs.writeFileSync(file('aginit.config.json'), JSON.stringify(saved));
+
+  expect(await createProject('app', { ...options, targetDir: dir })).toBe(true);
+  expect(calls().some((call) => call.includes('ponytail'))).toBe(false);
+  expect(calls().some((call) => call.includes('mattpocock/skills'))).toBe(true);
+  expect(read('aginit.config.json')).not.toContain('ponytail');
+  expect(read('AGENTS.md')).not.toContain('ponytail');
 });
 
 describe('stack detection', () => {
