@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.1] - 2026-11-14
+
+### Fixed
+
+- Removed Ponytail from the capability catalog and default skill installation. Saved configurations also drop its skill source and capability selections, so running aginit again does not reinstall it.
+
 ## [0.8.0] - 2026-11-08
 
 ### Changed
