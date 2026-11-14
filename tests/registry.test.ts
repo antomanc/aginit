@@ -56,7 +56,7 @@ describe('catalog', () => {
           ids.filter((id) => CATALOG.find((c) => c.id === id)?.category === category).length
         ).toBeLessThanOrEqual(1);
       expect(ids).not.toContain('trail');
-      expect(ids).toEqual(expect.arrayContaining(['pocock', 'ponytail', 'karpathy-guidelines', 'humanizer']));
+      expect(ids).toEqual(expect.arrayContaining(['pocock', 'karpathy-guidelines', 'humanizer']));
     }
   });
 });
@@ -188,7 +188,7 @@ describe('configs written before v2', () => {
 
   it('infer their capabilities from skill sources and switches', () => {
     expect(inferCapabilities(legacy())).toEqual(
-      expect.arrayContaining(['trail', 'pocock', 'humanizer', 'ponytail', 'impeccable', 'agent-browser', 'vitest', 'playwright'])
+      expect.arrayContaining(['trail', 'pocock', 'humanizer', 'impeccable', 'agent-browser', 'vitest', 'playwright'])
     );
   });
 

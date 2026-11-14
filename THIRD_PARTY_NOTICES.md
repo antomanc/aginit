@@ -36,12 +36,6 @@ Each integrated upstream tool is governed by its respective authors and licenses
 
 ## Discipline
 
-- **Ponytail**
-  - Project: Agent skill for the smallest complete change and less over-engineering
-  - Author: Dietrich Gebert
-  - License: MIT
-  - Repository: https://github.com/DietrichGebert/ponytail
-
 - **Karpathy guidelines**
   - Project: `karpathy-guidelines` skill, derived from Andrej Karpathy's observations on LLM coding pitfalls
   - Author: Jiayuan Zhang (forrestchang)

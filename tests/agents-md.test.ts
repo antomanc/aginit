@@ -40,13 +40,8 @@ describe('AGENTS.md generation & safety', () => {
     expect(md).toContain('Prose & Copy');
   });
 
-  it('includes ponytail guidance only when the ponytail skill is configured', () => {
+  it('omits ponytail guidance', () => {
     const config = getDefaultConfig('demo-generic', 'generic');
-    expect(generateAgentsMarkdown(config)).toContain('`ponytail`');
-
-    config.skills.sources = config.skills.sources.filter(
-      (s) => s.package !== 'dietrichgebert/ponytail'
-    );
     expect(generateAgentsMarkdown(config)).not.toContain('ponytail');
   });
 

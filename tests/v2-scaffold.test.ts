@@ -205,7 +205,7 @@ describe('CLI / Node project (--platform cli --design none)', () => {
     });
     const saved = config();
     expect(saved.capabilities).toEqual(
-      expect.arrayContaining(['pocock', 'ponytail', 'karpathy-guidelines', 'humanizer', 'vitest'])
+      expect.arrayContaining(['pocock', 'karpathy-guidelines', 'humanizer', 'vitest'])
     );
     for (const id of ['impeccable', 'agent-browser', 'agent-device', 'e2e'])
       expect(saved.capabilities).not.toContain(id);

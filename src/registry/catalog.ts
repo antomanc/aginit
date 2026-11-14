@@ -159,7 +159,7 @@ export const CATALOG: CapabilityDescriptor[] = [
   {
     id: 'minimal',
     name: 'Minimal',
-    description: 'Discipline core only (ponytail, karpathy-guidelines, rebuttals); no slash-command suite',
+    description: 'Discipline core only (karpathy-guidelines, rebuttals); no slash-command suite',
     category: 'methodology',
     author: 'aginit',
     repoUrl: 'https://github.com/antomanc/aginit',
@@ -179,20 +179,6 @@ export const CATALOG: CapabilityDescriptor[] = [
   },
 
   // ── Discipline (default core) ─────────────────────────────────────────────
-  {
-    id: 'ponytail',
-    name: 'ponytail',
-    description: 'Smallest complete change; cuts over-engineering',
-    category: 'discipline',
-    author: 'Dietrich Gebert',
-    repoUrl: 'https://github.com/DietrichGebert/ponytail',
-    license: 'MIT',
-    supportedPlatforms: ['all'],
-    requiresNodeInProjectRoot: false,
-    default: true,
-    install: [{ kind: 'skills-sh', repo: 'dietrichgebert/ponytail', skills: ['ponytail'] }],
-    routing: { task: 'Scoping or simplifying a change', read: '`ponytail` skill' }
-  },
   {
     id: 'karpathy-guidelines',
     name: 'Karpathy guidelines',

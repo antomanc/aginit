@@ -37,7 +37,6 @@ Load only what the task needs. Skills live in `.agents/skills/` (linked into `.c
 | --- | --- |
 | Automated unit & E2E testing | `docs/agents/testing.md` |
 | Engineering workflow & skills | `docs/agents/workflows.md` |
-| Scoping or simplifying a change | `ponytail` skill |
 | Prose & Copy (docs, README, UI text) | `humanizer` skill |
 
 ## Anti-Rationalization

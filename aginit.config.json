@@ -48,12 +48,6 @@
         ]
       },
       {
-        "package": "dietrichgebert/ponytail",
-        "skills": [
-          "ponytail"
-        ]
-      },
-      {
         "package": "multica-ai/andrej-karpathy-skills",
         "skills": [
           "karpathy-guidelines"
@@ -78,7 +72,6 @@
   "stack": "node",
   "capabilities": [
     "pocock",
-    "ponytail",
     "humanizer",
     "vitest",
     "karpathy-guidelines"

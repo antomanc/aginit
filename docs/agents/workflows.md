@@ -16,6 +16,5 @@ Not sure which skill fits? Start with `ask-matt`; it routes to the right one.
 | Review & ship | `code-review`, `pr`, `retro`, `handoff` |
 
 ## Discipline (apply to every change)
-- `ponytail`: Smallest complete change; cuts over-engineering.
 - `humanizer`: Strips AI writing tells from docs and copy.
 - `karpathy-guidelines`: Think before coding, simplicity first, surgical changes, goal-driven execution.

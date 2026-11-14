@@ -32,11 +32,10 @@ describe('Configuration & Defaults', () => {
     expect(packages).toContain('vercel-labs/agent-browser');
   });
 
-  it('installs the core ponytail skill in every preset', () => {
+  it('excludes ponytail from every preset', () => {
     for (const preset of ['web', 'cli', 'generic'] as const) {
       const config = getDefaultConfig('app', preset);
-      const ponytail = config.skills.sources.find((s) => s.package === 'dietrichgebert/ponytail');
-      expect(ponytail?.skills).toEqual(['ponytail']);
+      expect(config.skills.sources.some((s) => s.package === 'dietrichgebert/ponytail')).toBe(false);
     }
   });
 
