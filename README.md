@@ -7,6 +7,11 @@
 [![Node version](https://img.shields.io/node/v/@antomanc/aginit)](https://www.npmjs.com/package/@antomanc/aginit)
 [![License](https://img.shields.io/github/license/antomanc/aginit)](LICENSE)
 
+> **Archived (19 Nov 2026).** aginit installed skills into every project. I now keep skills
+> global at user level; see [antomanc/skills](https://github.com/antomanc/skills) and its
+> `bootstrap.sh`. The package is deprecated and this repo is read-only. The project-scaffolding
+> ideas may return as a global `bootstrap-project` skill.
+
 aginit gives a repo what agents need to do good work from the first session: an `AGENTS.md`
 that routes each task to the right doc, a curated set of engineering skills, a codebase graph
 so agents read less and understand more, a test harness they can actually run, and a way to
